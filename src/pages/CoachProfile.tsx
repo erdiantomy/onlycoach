@@ -87,7 +87,11 @@ const CoachProfile = () => {
       setActiveSub({ ...activeSub, cancel_at_period_end: true, current_period_end: result.access_until });
       toast.success("Subscription will end at the period end");
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not cancel");
+      if (err instanceof OfflineError) {
+        toast.error(err.message);
+      } else {
+        toast.error(err?.message ?? "Could not cancel");
+      }
     } finally {
       setBusy(false);
     }
