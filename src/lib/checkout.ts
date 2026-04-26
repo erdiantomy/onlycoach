@@ -89,6 +89,7 @@ export const cancelSubscription = async (coach_id: string, provider: "stripe" | 
     await openOnWeb(`/account/billing?cancel=${coach_id}`);
     return { ok: true, access_until: null } as const;
   }
+  assertOnlineForCheckout();
   const fn = provider === "xendit" ? "cancel-xendit-subscription" : "cancel-subscription";
   const { data, error } = await supabase.functions.invoke(fn, { body: { coach_id } });
   if (error) throw error;
