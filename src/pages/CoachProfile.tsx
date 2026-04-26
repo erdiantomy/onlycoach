@@ -65,7 +65,11 @@ const CoachProfile = () => {
         await startSubscriptionCheckout(tierId);
       }
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not start checkout");
+      if (err instanceof OfflineError) {
+        toast.error(err.message);
+      } else {
+        toast.error(err?.message ?? "Could not start checkout");
+      }
     } finally {
       setBusy(false);
     }
