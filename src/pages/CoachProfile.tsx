@@ -10,9 +10,24 @@ import { toast } from "sonner";
 
 const CoachProfile = () => {
   const { handle } = useParams();
+  const navigate = useNavigate();
+  const { user } = useSession();
   const coach = handle ? findCoach(handle) : undefined;
   if (!coach) return <NotFound />;
   const samplePosts = allPosts.filter((p) => p.coachId === coach.id).slice(0, 3);
+
+  const subscribe = async (tierId: string) => {
+    if (!user) {
+      navigate(`/auth?mode=signup&from=/coach/${coach.handle}`);
+      return;
+    }
+    try {
+      // The mock coach tier ids are local; in production these are real DB ids.
+      await startSubscriptionCheckout(tierId);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not start checkout");
+    }
+  };
 
   return (
     <AppShell>
