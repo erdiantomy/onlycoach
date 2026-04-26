@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { coaches } from "@/lib/mock";
 import { Image as ImageIcon, FileText, PlayCircle, Type } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIdr } from "@/lib/utils";
 
 const mediaOptions = [
   { id: "text", label: "Text", icon: Type },
@@ -64,7 +64,7 @@ const NewPost = () => {
                 <button type="button" key={t.id} onClick={() => setTier(t.id)} className={cn(
                   "border-2 border-ink px-3 py-1.5 text-xs font-semibold uppercase",
                   tier === t.id ? "bg-ink text-ink-foreground" : "bg-surface",
-                )}>{t.name} · ${t.price}</button>
+                )}>{t.name} · {formatIdr(t.price)}</button>
               ))}
             </div>
           </div>

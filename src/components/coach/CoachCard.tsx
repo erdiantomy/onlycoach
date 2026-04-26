@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, Users } from "lucide-react";
 import type { Coach } from "@/lib/mock";
+import { formatIdr } from "@/lib/utils";
 
 export const CoachCard = ({ coach }: { coach: Coach }) => {
   const startingPrice = Math.min(...coach.tiers.map((t) => t.price));
@@ -24,8 +25,8 @@ export const CoachCard = ({ coach }: { coach: Coach }) => {
               <Users className="h-3.5 w-3.5" /> {coach.subscribers.toLocaleString()}
             </span>
           </div>
-          <span className="font-display text-lg">
-            ${startingPrice}<span className="text-xs">/mo</span>
+          <span className="font-display text-base">
+            {formatIdr(startingPrice)}<span className="text-xs">/mo</span>
           </span>
         </div>
       </article>

@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { bookings, findCoach } from "@/lib/mock";
 import { Calendar, Clock, Video } from "lucide-react";
+import { formatIdr } from "@/lib/utils";
 
 const Sessions = () => {
   const upcoming = bookings.filter((b) => b.status === "upcoming");
@@ -20,7 +21,7 @@ const Sessions = () => {
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span className="inline-flex items-center gap-1"><Calendar className="h-4 w-4" /> {b.startsAt}</span>
           <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> {b.durationMin} min</span>
-          <span className="font-display">${b.price}</span>
+          <span className="font-display text-sm">{formatIdr(b.price)}</span>
           {b.status === "upcoming" && (
             <button className="border-2 border-ink bg-accent px-3 py-1.5 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm">
               <Video className="mr-1 inline h-3.5 w-3.5" /> Join

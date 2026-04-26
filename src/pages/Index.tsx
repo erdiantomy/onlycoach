@@ -3,6 +3,7 @@ import { ArrowRight, Check, MessageCircle, PlayCircle, Sparkles } from "lucide-r
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
+import { formatIdr } from "@/lib/utils";
 
 const featuredCoaches = [
   { name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
@@ -79,7 +80,7 @@ const Index = () => {
                 </div>
               </div>
               <button className="mt-4 w-full border-2 border-ink bg-accent py-3 font-display text-sm uppercase tracking-wide text-ink shadow-brutal-sm">
-                Subscribe — $19/mo
+                Subscribe — {formatIdr(19)}/mo
               </button>
               <button className="mt-2 flex w-full items-center justify-center gap-2 border-2 border-ink bg-surface py-3 font-display text-sm uppercase tracking-wide text-ink">
                 <MessageCircle className="h-4 w-4" /> Message coach
@@ -150,7 +151,7 @@ const Index = () => {
                     {c.niche}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="font-display text-lg">${c.price}<span className="text-xs">/mo</span></span>
+                    <span className="font-display text-sm">{formatIdr(c.price)}<span className="text-xs">/mo</span></span>
                     <Link
                       to="/discover"
                       className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"

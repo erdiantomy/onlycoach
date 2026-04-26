@@ -6,6 +6,7 @@ import { coaches, posts } from "@/lib/mock";
 import { CreditCard, LogOut, Settings, Sparkles } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
+import { formatIdr } from "@/lib/utils";
 
 const Me = () => {
   const { user, loading, signOut } = useSession();
@@ -52,7 +53,7 @@ const Me = () => {
                 <div className="flex-1">
                   <div className="font-display">{c.name}</div>
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {c.tiers[1]?.name ?? c.tiers[0].name} · ${c.tiers[1]?.price ?? c.tiers[0].price}/mo
+                    {c.tiers[1]?.name ?? c.tiers[0].name} · {formatIdr(c.tiers[1]?.price ?? c.tiers[0].price)}/mo
                   </div>
                 </div>
                 <span className="brutal-tag bg-accent">Active</span>
