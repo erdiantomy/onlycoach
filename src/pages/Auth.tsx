@@ -69,7 +69,7 @@ const Auth = () => {
   return (
     <AppShell hideTabBar>
       <div className="mx-auto flex w-full max-w-md flex-col items-center px-4 py-10 md:py-16">
-        <Logo variant="stacked" className="text-3xl" />
+        <Logo variant="stacked" className="mx-auto" />
         <div className="brutal-card mt-8 w-full p-6">
           <div className="mb-5 grid grid-cols-2 border-2 border-ink">
             {(["signin", "signup"] as const).map((m) => (
