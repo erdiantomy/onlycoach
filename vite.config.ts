@@ -19,4 +19,13 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    rollupOptions: {
+      // Optional Capacitor plugins — only present in the native shell after
+      // `npm install @capacitor/app @capacitor/browser @capacitor/network`.
+      // Mark them external so Rollup doesn't try to resolve the dynamic
+      // imports at web build time.
+      external: ["@capacitor/app", "@capacitor/browser", "@capacitor/network"],
+    },
+  },
 }));
