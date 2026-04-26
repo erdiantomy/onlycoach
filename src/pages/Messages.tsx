@@ -26,6 +26,38 @@ const Messages = () => {
   const coach = active ? findCoach(active.coachId) : null;
   const thread = active ? messagesByConv[active.id] ?? [] : [];
 
+  // Network + outbox: messages typed offline are queued safely and flushed
+  // when the connection comes back. Children always render so chat history
+  // stays readable while the banner shows status.
+  const { online } = useOnlineStatus();
+  const { forConversation: outbox, enqueue, remove, flush } = useMessageOutbox(activeId);
+
+  // Stub sender — real implementation would call supabase.from('messages').insert(...)
+  // and return true on success. Keeping it isolated means swapping the
+  // backend later doesn't touch the UI/queue logic.
+  const sendOne = async (item: { id: string; conversationId: string; body: string }) => {
+    if (!online) return false;
+    // TODO: replace with real supabase insert once chat is on real data.
+    await new Promise((r) => setTimeout(r, 250));
+    return true;
+  };
+
+  // Auto-flush whenever connectivity returns OR a new item lands.
+  useEffect(() => {
+    if (!online || outbox.length === 0) return;
+    flush(sendOne);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online, outbox.length]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!draft.trim() || !activeId) return;
+    enqueue(draft);
+    setDraft("");
+    // Try immediately if online — if not, item stays queued.
+    if (online) flush(sendOne);
+  };
+
   return (
     <AppShell>
       <div className="mx-auto grid h-[calc(100vh-8rem)] w-full max-w-6xl grid-cols-1 gap-0 px-0 md:grid-cols-[320px_1fr] md:gap-4 md:px-8 md:py-6">
