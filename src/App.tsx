@@ -5,7 +5,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import PlaceholderPage from "./pages/PlaceholderPage.tsx";
+import Discover from "./pages/Discover.tsx";
+import CoachProfile from "./pages/CoachProfile.tsx";
+import Feed from "./pages/Feed.tsx";
+import Messages from "./pages/Messages.tsx";
+import Sessions from "./pages/Sessions.tsx";
+import Me from "./pages/Me.tsx";
+import Studio from "./pages/Studio.tsx";
+import NewPost from "./pages/NewPost.tsx";
+import Auth from "./pages/Auth.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
+import Onboarding from "./pages/Onboarding.tsx";
+import Settings from "./pages/Settings.tsx";
+import Legal from "./pages/Legal.tsx";
+import RequireAuth from "./components/auth/RequireAuth.tsx";
 
 const queryClient = new QueryClient();
 
@@ -17,60 +30,23 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route
-            path="/discover"
-            element={
-              <PlaceholderPage
-                title="Discover coaches"
-                description="Browse verified coaches by niche, price, and rating. Coming in the next round."
-              />
-            }
-          />
-          <Route
-            path="/feed"
-            element={
-              <PlaceholderPage
-                title="Your feed"
-                description="Posts from every coach you subscribe to, newest first."
-              />
-            }
-          />
-          <Route
-            path="/messages"
-            element={
-              <PlaceholderPage
-                title="Messages"
-                description="Direct, real-time chat with your coach. Subscriber-only."
-              />
-            }
-          />
-          <Route
-            path="/sessions"
-            element={
-              <PlaceholderPage
-                title="Live sessions"
-                description="Book and manage 1:1 calls with your coach."
-              />
-            }
-          />
-          <Route
-            path="/me"
-            element={
-              <PlaceholderPage
-                title="Your profile"
-                description="Account, subscriptions, payouts and settings."
-              />
-            }
-          />
-          <Route
-            path="/auth"
-            element={
-              <PlaceholderPage
-                title="Sign in to ONLY/COACH"
-                description="Email + password and Google sign-in arrive in round 2 with Lovable Cloud."
-              />
-            }
-          />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/coach/:handle" element={<CoachProfile />} />
+
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/terms" element={<Legal kind="terms" />} />
+          <Route path="/privacy" element={<Legal kind="privacy" />} />
+
+          <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+          <Route path="/feed" element={<RequireAuth><Feed /></RequireAuth>} />
+          <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
+          <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
+          <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
+          <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
+          <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
