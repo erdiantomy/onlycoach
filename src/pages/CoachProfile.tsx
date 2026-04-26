@@ -138,6 +138,11 @@ const CoachProfile = () => {
         </div>
 
         <aside className="md:sticky md:top-24 md:self-start">
+          <OfflineBoundary
+            blockWhenOffline
+            title="Checkout unavailable offline"
+            description="Subscriptions and bookings need a stable connection. Reconnect and tap retry to continue."
+          >
           <div className="brutal-card p-5">
             <h3 className="font-display text-xl">{isSubscribed ? "Your plan" : "Subscribe"}</h3>
             <p className="mt-1 text-xs text-muted-foreground">
