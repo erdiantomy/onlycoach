@@ -1,6 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 import { requiresExternalCheckout, openOnWeb } from "@/lib/platform";
 
+/** Thrown when checkout is invoked while the device is offline. UI should
+ * catch and show a retry prompt instead of treating this as a hard error. */
+export class OfflineError extends Error {
+  readonly code = "OFFLINE";
+  constructor(message = "You're offline. Connect to a network and try again.") {
+    super(message);
+    this.name = "OfflineError";
+  }
+}
+
+/** Lightweight online check usable from non-React code paths. */
+const isOnline = (): boolean =>
+  typeof navigator === "undefined" ? true : navigator.onLine;
+
+/**
+ * Hard guard against starting a payment flow without network. We must NOT
+ * call create-checkout edge functions while offline — a partial / failed
+ * round-trip can leave the user staring at an aborted redirect while a
+ * pending session exists server-side.
+ */
+const assertOnlineForCheckout = () => {
+  if (!isOnline()) throw new OfflineError();
+};
+
 /** Detect if user should be routed to Xendit (SEA locales). */
 export const shouldUseXendit = (): boolean => {
   if (typeof navigator === "undefined") return false;
