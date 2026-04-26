@@ -1,50 +1,31 @@
 import { cn } from "@/lib/utils";
+import logoSrc from "@/assets/only-coach-logo.svg";
 
 interface LogoProps {
   className?: string;
+  /**
+   * `stacked` and `inline` are kept for backwards compatibility; both now
+   * render the official ONLY/COACH wordmark SVG. Sizing is controlled via
+   * `className` (height utilities like `h-8`, `h-10`, etc.).
+   */
   variant?: "stacked" | "inline";
 }
 
 /**
- * ONLY/COACH wordmark.
- * - "ONLY" mixes thin outline (ON) with heavy black (LY) for editorial tension.
- * - "COACH" sits below in deep forest green, uppercase heavy.
- * Pure SVG so it scales identically on web and inside the Capacitor WebView.
+ * Official ONLY/COACH wordmark.
+ * Uses the brand SVG so it renders identically on web and inside the
+ * Capacitor WebView, and scales crisply at any size.
  */
-export const Logo = ({ className, variant = "stacked" }: LogoProps) => {
-  if (variant === "inline") {
-    return (
-      <div
-        className={cn(
-          "inline-flex items-baseline gap-1 font-display leading-none",
-          className,
-        )}
-        aria-label="ONLY COACH"
-      >
-        <span className="text-foreground tracking-tight">ONLY</span>
-        <span className="text-primary tracking-tight">/COACH</span>
-      </div>
-    );
-  }
+export const Logo = ({ className, variant = "inline" }: LogoProps) => {
+  const defaultSize = variant === "stacked" ? "h-16 w-auto" : "h-8 w-auto";
 
   return (
-    <div
-      className={cn("inline-flex flex-col leading-[0.85]", className)}
-      aria-label="ONLY COACH"
-    >
-      <span className="font-display text-[1.6em] tracking-tight">
-        <span
-          className="text-transparent"
-          style={{ WebkitTextStroke: "1.5px hsl(var(--ink))" }}
-        >
-          ON
-        </span>
-        <span className="text-foreground">LY</span>
-      </span>
-      <span className="font-display text-[1.6em] tracking-tight text-primary">
-        COACH
-      </span>
-    </div>
+    <img
+      src={logoSrc}
+      alt="ONLY COACH"
+      className={cn(defaultSize, "select-none", className)}
+      draggable={false}
+    />
   );
 };
 
