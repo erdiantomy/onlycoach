@@ -1,6 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 import { requiresExternalCheckout, openOnWeb } from "@/lib/platform";
 
+/** Thrown when checkout is invoked while the device is offline. UI should
+ * catch and show a retry prompt instead of treating this as a hard error. */
+export class OfflineError extends Error {
+  readonly code = "OFFLINE";
+  constructor(message = "You're offline. Connect to a network and try again.") {
+    super(message);
+    this.name = "OfflineError";
+  }
+}
+
+/** Lightweight online check usable from non-React code paths. */
+const isOnline = (): boolean =>
+  typeof navigator === "undefined" ? true : navigator.onLine;
+
+/**
+ * Hard guard against starting a payment flow without network. We must NOT
+ * call create-checkout edge functions while offline — a partial / failed
+ * round-trip can leave the user staring at an aborted redirect while a
+ * pending session exists server-side.
+ */
+const assertOnlineForCheckout = () => {
+  if (!isOnline()) throw new OfflineError();
+};
+
 /** Detect if user should be routed to Xendit (SEA locales). */
 export const shouldUseXendit = (): boolean => {
   if (typeof navigator === "undefined") return false;
@@ -26,6 +50,7 @@ export const startSubscriptionCheckout = async (tier_id: string, opts?: { coachH
     await openOnWeb(path);
     return;
   }
+  assertOnlineForCheckout();
   const fn = shouldUseXendit() ? "create-xendit-subscription" : "create-subscription-checkout";
   const { data, error } = await supabase.functions.invoke(fn, { body: { tier_id } });
   if (error) throw error;
@@ -39,6 +64,7 @@ export const startBookingCheckout = async (slot_id: string, opts?: { coachHandle
     await openOnWeb(path);
     return;
   }
+  assertOnlineForCheckout();
   const fn = shouldUseXendit() ? "create-xendit-invoice" : "create-booking-checkout";
   const { data, error } = await supabase.functions.invoke(fn, { body: { slot_id } });
   if (error) throw error;
@@ -51,6 +77,7 @@ export const changeSubscription = async (new_tier_id: string) => {
     await openOnWeb(`/account/billing?change=${new_tier_id}`);
     return { ok: true, redirected: true } as const;
   }
+  assertOnlineForCheckout();
   const { data, error } = await supabase.functions.invoke("change-subscription", { body: { new_tier_id } });
   if (error) throw error;
   return data;
@@ -62,6 +89,7 @@ export const cancelSubscription = async (coach_id: string, provider: "stripe" | 
     await openOnWeb(`/account/billing?cancel=${coach_id}`);
     return { ok: true, access_until: null } as const;
   }
+  assertOnlineForCheckout();
   const fn = provider === "xendit" ? "cancel-xendit-subscription" : "cancel-subscription";
   const { data, error } = await supabase.functions.invoke(fn, { body: { coach_id } });
   if (error) throw error;

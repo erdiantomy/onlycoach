@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Check, Lock, MessageCircle, Star, Users } from "lucide-react";
 import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
-import { startSubscriptionCheckout, changeSubscription, cancelSubscription } from "@/lib/checkout";
+import { startSubscriptionCheckout, changeSubscription, cancelSubscription, OfflineError } from "@/lib/checkout";
 import { isCheckoutBlockedOnDevice } from "@/lib/checkout";
 import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
+import { OfflineBoundary } from "@/components/OfflineBoundary";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,7 +65,11 @@ const CoachProfile = () => {
         await startSubscriptionCheckout(tierId);
       }
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not start checkout");
+      if (err instanceof OfflineError) {
+        toast.error(err.message);
+      } else {
+        toast.error(err?.message ?? "Could not start checkout");
+      }
     } finally {
       setBusy(false);
     }
@@ -82,7 +87,11 @@ const CoachProfile = () => {
       setActiveSub({ ...activeSub, cancel_at_period_end: true, current_period_end: result.access_until });
       toast.success("Subscription will end at the period end");
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not cancel");
+      if (err instanceof OfflineError) {
+        toast.error(err.message);
+      } else {
+        toast.error(err?.message ?? "Could not cancel");
+      }
     } finally {
       setBusy(false);
     }
@@ -129,6 +138,11 @@ const CoachProfile = () => {
         </div>
 
         <aside className="md:sticky md:top-24 md:self-start">
+          <OfflineBoundary
+            blockWhenOffline
+            title="Checkout unavailable offline"
+            description="Subscriptions and bookings need a stable connection. Reconnect and tap retry to continue."
+          >
           <div className="brutal-card p-5">
             <h3 className="font-display text-xl">{isSubscribed ? "Your plan" : "Subscribe"}</h3>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -184,6 +198,7 @@ const CoachProfile = () => {
               <Link to="/messages"><MessageCircle className="mr-2 h-4 w-4" /> Message coach</Link>
             </Button>
           </div>
+          </OfflineBoundary>
         </aside>
       </div>
     </AppShell>
