@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { OfflineBoundary } from "@/components/OfflineBoundary";
+import { useMessageOutbox } from "@/hooks/useMessageOutbox";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { conversations, messagesByConv, findCoach } from "@/lib/mock";
-import { Send } from "lucide-react";
+import { AlertCircle, Clock, RefreshCw, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Messages = () => {
