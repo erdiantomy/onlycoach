@@ -98,10 +98,16 @@ Deno.serve(async (req) => {
       "line_items[0][quantity]": "1",
       "customer_email": user.email ?? "",
       "client_reference_id": user.id,
+      // Session-level metadata (visible on checkout.session.completed)
       "metadata[mentee_id]": user.id,
       "metadata[coach_id]": tier.coach_id,
       "metadata[tier_id]": tier.id,
+      // Subscription-level metadata (visible on customer.subscription.* events)
+      "subscription_data[metadata][mentee_id]": user.id,
+      "subscription_data[metadata][coach_id]": tier.coach_id,
+      "subscription_data[metadata][tier_id]": tier.id,
     });
+
 
     const sessionResp = await fetch(`${GATEWAY_URL}/v1/checkout/sessions`, {
       method: "POST",
