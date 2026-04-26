@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { posts, findCoach } from "@/lib/mock";
-import { Heart, Lock, MessageSquare, Image as ImageIcon, FileText, PlayCircle } from "lucide-react";
+import { Bookmark, Heart, Lock, MessageSquare, Image as ImageIcon, FileText, PlayCircle } from "lucide-react";
+import { useSavedPosts } from "@/hooks/useSavedPosts";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const mediaIcon = {
   text: null,
@@ -10,12 +13,19 @@ const mediaIcon = {
   pdf: <FileText className="h-4 w-4" />,
 } as const;
 
-const Feed = () => (
+const Feed = () => {
+  const { isSaved, toggle } = useSavedPosts();
+  return (
   <AppShell>
     <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-8 md:py-12">
-      <header className="mb-6">
-        <h1 className="font-display text-3xl md:text-4xl">Your feed</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Latest from your coaches.</p>
+      <header className="mb-6 flex items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl md:text-4xl">Your feed</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Latest from your coaches.</p>
+        </div>
+        <Link to="/saved" className="brutal-tag bg-surface">
+          <Bookmark className="h-3 w-3" /> Saved
+        </Link>
       </header>
 
       <div className="space-y-5">
@@ -54,6 +64,15 @@ const Feed = () => (
                 <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
                   <button className="inline-flex items-center gap-1 hover:text-foreground"><Heart className="h-4 w-4" /> {p.likes}</button>
                   <button className="inline-flex items-center gap-1 hover:text-foreground"><MessageSquare className="h-4 w-4" /> {p.comments}</button>
+                  <button
+                    onClick={() => { toggle(p.id); toast.success(isSaved(p.id) ? "Removed from saved" : "Saved"); }}
+                    className={cn(
+                      "ml-auto inline-flex items-center gap-1 hover:text-foreground",
+                      isSaved(p.id) && "text-primary",
+                    )}
+                  >
+                    <Bookmark className={cn("h-4 w-4", isSaved(p.id) && "fill-current")} />
+                  </button>
                 </div>
               </div>
             </article>
@@ -62,6 +81,7 @@ const Feed = () => (
       </div>
     </div>
   </AppShell>
-);
+  );
+};
 
 export default Feed;

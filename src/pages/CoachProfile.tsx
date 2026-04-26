@@ -7,6 +7,7 @@ import { Check, Lock, MessageCircle, Star, Users } from "lucide-react";
 import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
 import { startSubscriptionCheckout, changeSubscription, cancelSubscription, OfflineError } from "@/lib/checkout";
+import { formatIdr } from "@/lib/utils";
 import { isCheckoutBlockedOnDevice } from "@/lib/checkout";
 import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { OfflineBoundary } from "@/components/OfflineBoundary";
@@ -157,7 +158,7 @@ const CoachProfile = () => {
                   <div key={t.id} className={`border-2 border-ink p-4 ${isCurrent ? "bg-primary text-primary-foreground" : i === 1 ? "bg-accent" : "bg-surface"}`}>
                     <div className="flex items-baseline justify-between">
                       <span className="font-display text-lg">{t.name}</span>
-                      <span className="font-display text-xl">${t.price}<span className="text-xs">/mo</span></span>
+                      <span className="font-display text-lg">{formatIdr(t.price)}<span className="text-xs">/mo</span></span>
                     </div>
                     <ul className="mt-2 space-y-1 text-sm">
                       {t.perks.map((perk) => (

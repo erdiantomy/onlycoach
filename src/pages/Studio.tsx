@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { posts, coaches } from "@/lib/mock";
 import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy } from "lucide-react";
+import { formatIdr } from "@/lib/utils";
 
 const Studio = () => {
   const me = coaches[0];
@@ -10,7 +11,7 @@ const Studio = () => {
 
   const stats = [
     { label: "Subscribers", value: me.subscribers.toLocaleString(), icon: Users },
-    { label: "Monthly revenue", value: `$${Math.round(mrr).toLocaleString()}`, icon: DollarSign },
+    { label: "Monthly revenue", value: formatIdr(Math.round(mrr)), icon: DollarSign },
     { label: "Posts", value: myPosts.length, icon: FileText },
     { label: "Unread DMs", value: 7, icon: MessageCircle },
   ];
@@ -47,7 +48,8 @@ const Studio = () => {
               { to: "/studio/subscribers", label: "Subscribers", icon: Users },
               { to: "/studio/payouts", label: "Payouts", icon: Banknote },
               { to: "/studio/referrals", label: "Referrals", icon: Gift },
-              { to: "/challenges", label: "Challenges", icon: Trophy },
+              { to: "/studio/challenges", label: "Challenges", icon: Trophy },
+              { to: "/studio/broadcast", label: "Broadcast", icon: MessageCircle },
             ].map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to} className="brutal-card-sm flex items-center gap-3 p-4 hover:bg-accent/30">
                 <Icon className="h-5 w-5 text-primary" />

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { challenges, findCoach, type Challenge } from "@/lib/mock";
 import { Calendar, Users, Search, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIdr } from "@/lib/utils";
 
 const filters: Array<"All" | Challenge["status"]> = ["All", "open", "active", "completed"];
 
@@ -58,7 +58,7 @@ const Challenges = () => {
                 <Link key={ch.id} to={`/challenges/${ch.id}`} className="brutal-card-sm group flex flex-col p-5 hover:bg-accent/20">
                   <div className="flex items-center justify-between">
                     <span className="brutal-tag">{ch.status}</span>
-                    <span className="font-display text-2xl">${ch.price}</span>
+                    <span className="font-display text-lg">{formatIdr(ch.price)}</span>
                   </div>
                   <h2 className="mt-3 font-display text-xl group-hover:underline">{ch.title}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">by {coach?.name ?? "Coach"}</p>

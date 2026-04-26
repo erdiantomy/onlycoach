@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "mobile:sync:release": "CAP_ENV=production npx cap sync",
     "mobile:build:release": "npm run build && CAP_ENV=production npx cap sync && node scripts/mobile-preflight.mjs",
-    "mobile:preflight": "node scripts/mobile-preflight.mjs"
+    "mobile:preflight": "node scripts/mobile-preflight.mjs",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { coaches, dailyStats, posts as allPosts, subscribers } from "@/lib/mock";
 import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Eye, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIdr } from "@/lib/utils";
 
 type Range = "7d" | "30d" | "all";
 
@@ -66,7 +66,7 @@ const Analytics = () => {
         </header>
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Revenue" value={`$${totals.revenue.toLocaleString()}`} icon={DollarSign} />
+          <StatCard label="Revenue" value={formatIdr(totals.revenue)} icon={DollarSign} />
           <StatCard label="New subscribers" value={totals.newSubs.toLocaleString()} icon={TrendingUp} />
           <StatCard label="Churn rate" value={`${churnRate}%`} icon={TrendingDown} />
           <StatCard label="Content views" value={totals.views.toLocaleString()} icon={Eye} />
@@ -76,7 +76,7 @@ const Analytics = () => {
           <h2 className="font-display text-xl">Revenue trend</h2>
           <div className="mt-5 flex h-40 items-end gap-1">
             {window.map((d) => (
-              <div key={d.date} className="flex flex-1 flex-col items-center justify-end" title={`${d.date}: $${d.revenue}`}>
+              <div key={d.date} className="flex flex-1 flex-col items-center justify-end" title={`${d.date}: ${formatIdr(d.revenue)}`}>
                 <div
                   className="w-full border-2 border-ink bg-primary"
                   style={{ height: `${Math.max(4, (d.revenue / peakRevenue) * 100)}%` }}
@@ -98,7 +98,7 @@ const Analytics = () => {
                 <div key={t.id}>
                   <div className="flex items-baseline justify-between text-sm">
                     <span className="font-semibold">{t.name}</span>
-                    <span className="text-muted-foreground">${Math.round(t.revenue).toLocaleString()} · {Math.round(t.sliceSubs)} subs</span>
+                    <span className="text-muted-foreground">{formatIdr(t.revenue)} · {Math.round(t.sliceSubs)} subs</span>
                   </div>
                   <div className="mt-1 h-2 w-full border-2 border-ink bg-surface">
                     <div

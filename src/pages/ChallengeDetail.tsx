@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, ArrowLeft, Lock, FileText, Video, Headphones, ClipboardList } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
+import { formatIdr } from "@/lib/utils";
 
 const lessonIcon = {
   text: FileText,
@@ -51,7 +52,7 @@ const ChallengeDetail = () => {
               </Link>
             )}
           </div>
-          <div className="font-display text-3xl">${challenge.price}</div>
+          <div className="font-display text-2xl">{formatIdr(challenge.price)}</div>
         </header>
 
         <div className="mt-6 grid gap-8 md:grid-cols-[1fr_320px]">
@@ -111,7 +112,7 @@ const ChallengeDetail = () => {
                 disabled={enrolled}
                 className="mt-4 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90"
               >
-                {enrolled ? "Enrolled — see you Day 1" : `Enroll — $${challenge.price}`}
+                {enrolled ? "Enrolled — see you Day 1" : `Enroll — ${formatIdr(challenge.price)}`}
               </Button>
             </div>
           </aside>

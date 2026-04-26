@@ -5,7 +5,7 @@ import { payouts } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Banknote, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatIdr } from "@/lib/utils";
 
 type Schedule = "weekly" | "biweekly" | "monthly";
 
@@ -43,11 +43,11 @@ const Payouts = () => {
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Lifetime earned</div>
-            <div className="mt-2 font-display text-2xl">${totalEarned.toLocaleString()}</div>
+            <div className="mt-2 font-display text-xl">{formatIdr(totalEarned)}</div>
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Pending</div>
-            <div className="mt-2 font-display text-2xl">$240</div>
+            <div className="mt-2 font-display text-xl">{formatIdr(240)}</div>
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Next payout</div>
@@ -100,10 +100,11 @@ const Payouts = () => {
           </div>
           <div className="mt-4">
             <label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Minimum payout (USD)
+              Minimum payout (IDR ‘000)
             </label>
-            <input type="number" min={50} value={minPayout} onChange={(e) => setMinPayout(Number(e.target.value))}
+            <input type="number" min={100} step={50} value={minPayout} onChange={(e) => setMinPayout(Number(e.target.value))}
               className="mt-1 w-32 border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none" />
+            <p className="mt-1 text-xs text-muted-foreground">Currently {formatIdr(minPayout)}</p>
           </div>
         </section>
 
@@ -128,7 +129,7 @@ const Payouts = () => {
                   {payouts.map((p) => (
                     <tr key={p.id} className="border-b-2 border-ink/10 last:border-0">
                       <td className="px-4 py-3">{p.date}</td>
-                      <td className="px-4 py-3 font-semibold">${p.amount.toLocaleString()}</td>
+                      <td className="px-4 py-3 font-semibold">{formatIdr(p.amount)}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1 text-xs uppercase tracking-wide">
                           {p.status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : <Clock className="h-3.5 w-3.5" />}

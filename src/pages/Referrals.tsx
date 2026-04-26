@@ -5,6 +5,7 @@ import { coaches, referrals } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Gift, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatIdr } from "@/lib/utils";
 
 const Referrals = () => {
   const me = coaches[0];
@@ -77,7 +78,7 @@ const Referrals = () => {
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Earned to date</div>
-            <div className="mt-2 font-display text-3xl">${totalEarned.toLocaleString()}</div>
+            <div className="mt-2 font-display text-2xl">{formatIdr(totalEarned)}</div>
           </div>
         </section>
 
@@ -103,7 +104,7 @@ const Referrals = () => {
                     <tr key={r.id} className="border-b-2 border-ink/10 last:border-0">
                       <td className="px-4 py-3 font-semibold">{r.coachName}</td>
                       <td className="px-4 py-3 text-muted-foreground">{r.joinedAt}</td>
-                      <td className="px-4 py-3 font-semibold">${r.earnedToDate.toLocaleString()}</td>
+                      <td className="px-4 py-3 font-semibold">{formatIdr(r.earnedToDate)}</td>
                     </tr>
                   ))}
                 </tbody>
