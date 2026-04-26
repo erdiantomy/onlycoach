@@ -19,6 +19,7 @@ import Onboarding from "./pages/Onboarding.tsx";
 import Settings from "./pages/Settings.tsx";
 import Legal from "./pages/Legal.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <DeepLinkHandler />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/discover" element={<Discover />} />
@@ -41,6 +43,7 @@ const App = () => (
           <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           <Route path="/feed" element={<RequireAuth><Feed /></RequireAuth>} />
           <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
+          <Route path="/messages/:conversationId" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
           <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
           <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
