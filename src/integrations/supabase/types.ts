@@ -55,11 +55,13 @@ export type Database = {
           id: string
           meeting_url: string | null
           mentee_id: string
+          payment_provider: Database["public"]["Enums"]["payment_provider"]
           price_cents: number
           slot_id: string | null
           starts_at: string
           status: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id: string | null
+          xendit_invoice_id: string | null
         }
         Insert: {
           coach_id: string
@@ -68,11 +70,13 @@ export type Database = {
           id?: string
           meeting_url?: string | null
           mentee_id: string
+          payment_provider?: Database["public"]["Enums"]["payment_provider"]
           price_cents: number
           slot_id?: string | null
           starts_at: string
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id?: string | null
+          xendit_invoice_id?: string | null
         }
         Update: {
           coach_id?: string
@@ -81,11 +85,13 @@ export type Database = {
           id?: string
           meeting_url?: string | null
           mentee_id?: string
+          payment_provider?: Database["public"]["Enums"]["payment_provider"]
           price_cents?: number
           slot_id?: string | null
           starts_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
           stripe_payment_intent_id?: string | null
+          xendit_invoice_id?: string | null
         }
         Relationships: [
           {
@@ -392,8 +398,10 @@ export type Database = {
           name: string
           perks: string[]
           price_cents: number
+          price_idr_cents: number | null
           sort_order: number
           stripe_price_id: string | null
+          xendit_plan_id: string | null
         }
         Insert: {
           coach_id: string
@@ -403,8 +411,10 @@ export type Database = {
           name: string
           perks?: string[]
           price_cents: number
+          price_idr_cents?: number | null
           sort_order?: number
           stripe_price_id?: string | null
+          xendit_plan_id?: string | null
         }
         Update: {
           coach_id?: string
@@ -414,8 +424,10 @@ export type Database = {
           name?: string
           perks?: string[]
           price_cents?: number
+          price_idr_cents?: number | null
           sort_order?: number
           stripe_price_id?: string | null
+          xendit_plan_id?: string | null
         }
         Relationships: []
       }
@@ -427,10 +439,13 @@ export type Database = {
           current_period_end: string | null
           id: string
           mentee_id: string
+          payment_provider: Database["public"]["Enums"]["payment_provider"]
           status: Database["public"]["Enums"]["subscription_status"]
           stripe_subscription_id: string | null
           tier_id: string
           updated_at: string
+          xendit_customer_id: string | null
+          xendit_recurring_plan_id: string | null
         }
         Insert: {
           cancel_at_period_end?: boolean
@@ -439,10 +454,13 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           mentee_id: string
+          payment_provider?: Database["public"]["Enums"]["payment_provider"]
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_subscription_id?: string | null
           tier_id: string
           updated_at?: string
+          xendit_customer_id?: string | null
+          xendit_recurring_plan_id?: string | null
         }
         Update: {
           cancel_at_period_end?: boolean
@@ -451,10 +469,13 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           mentee_id?: string
+          payment_provider?: Database["public"]["Enums"]["payment_provider"]
           status?: Database["public"]["Enums"]["subscription_status"]
           stripe_subscription_id?: string | null
           tier_id?: string
           updated_at?: string
+          xendit_customer_id?: string | null
+          xendit_recurring_plan_id?: string | null
         }
         Relationships: [
           {
@@ -520,6 +541,7 @@ export type Database = {
         | "Yoga"
         | "Business"
         | "Other"
+      payment_provider: "stripe" | "xendit"
       subscription_status:
         | "active"
         | "trialing"
@@ -665,6 +687,7 @@ export const Constants = {
         "Business",
         "Other",
       ],
+      payment_provider: ["stripe", "xendit"],
       subscription_status: [
         "active",
         "trialing",
