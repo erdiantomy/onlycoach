@@ -64,7 +64,7 @@ const Index = () => {
           <div className="relative mx-auto w-full max-w-sm">
             <div className="brutal-card relative p-5">
               <div className="flex items-center justify-between">
-                <Logo variant="inline" className="text-base" />
+                <Logo variant="inline" className="h-6 sm:h-7" />
                 <span className="brutal-tag">PRO TIER</span>
               </div>
               <div className="mt-5 aspect-[4/5] border-2 border-ink bg-primary/90">
@@ -185,7 +185,7 @@ const Index = () => {
 
       <footer className="border-t-2 border-ink bg-background">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-4 px-4 py-8 text-sm md:flex-row md:items-center md:px-8">
-          <Logo variant="inline" className="text-base" />
+          <Logo variant="inline" className="h-7 md:h-8" />
           <p className="text-muted-foreground">© {new Date().getFullYear()} ONLY/COACH. All rights reserved.</p>
         </div>
       </footer>
