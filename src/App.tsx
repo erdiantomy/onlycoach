@@ -19,6 +19,7 @@ import Onboarding from "./pages/Onboarding.tsx";
 import Settings from "./pages/Settings.tsx";
 import Legal from "./pages/Legal.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 
 const queryClient = new QueryClient();
 
