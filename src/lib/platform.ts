@@ -32,13 +32,16 @@ export const openOnWeb = async (path: string): Promise<void> => {
   const url = path.startsWith("http") ? path : `${WEB_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
   if (isNativePlatform()) {
     try {
-      // Lazy import so web bundles don't pull the plugin if unused.
-      const { Browser } = await import("@capacitor/browser");
-      await Browser.open({ url, presentationStyle: "fullscreen" });
-      return;
+      // Optional plugin — only present once the user installs @capacitor/browser
+      // in their native shell. Use a runtime-only dynamic import so TS doesn't
+      // require the package to be in node_modules.
+      const mod: any = await import(/* @vite-ignore */ "@capacitor/browser").catch(() => null);
+      if (mod?.Browser?.open) {
+        await mod.Browser.open({ url, presentationStyle: "fullscreen" });
+        return;
+      }
     } catch {
-      // Plugin not installed — fall through to window.open which on iOS
-      // Capacitor opens Safari.
+      // fall through
     }
   }
   window.open(url, "_blank", "noopener,noreferrer");
