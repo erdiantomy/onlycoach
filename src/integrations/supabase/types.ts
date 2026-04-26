@@ -97,13 +97,30 @@ export type Database = {
           },
         ]
       }
+      coach_billing: {
+        Row: {
+          stripe_account_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          stripe_account_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          stripe_account_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coach_profiles: {
         Row: {
           created_at: string
           is_published: boolean
           niche: Database["public"]["Enums"]["niche"]
           rating: number
-          stripe_account_id: string | null
           subscriber_count: number
           updated_at: string
           user_id: string
@@ -113,7 +130,6 @@ export type Database = {
           is_published?: boolean
           niche?: Database["public"]["Enums"]["niche"]
           rating?: number
-          stripe_account_id?: string | null
           subscriber_count?: number
           updated_at?: string
           user_id: string
@@ -123,7 +139,6 @@ export type Database = {
           is_published?: boolean
           niche?: Database["public"]["Enums"]["niche"]
           rating?: number
-          stripe_account_id?: string | null
           subscriber_count?: number
           updated_at?: string
           user_id?: string

@@ -1,15 +1,33 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { findCoach, posts as allPosts } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { Check, Lock, MessageCircle, Star, Users } from "lucide-react";
 import NotFound from "./NotFound";
+import { useSession } from "@/hooks/useSession";
+import { startSubscriptionCheckout } from "@/lib/checkout";
+import { toast } from "sonner";
 
 const CoachProfile = () => {
   const { handle } = useParams();
+  const navigate = useNavigate();
+  const { user } = useSession();
   const coach = handle ? findCoach(handle) : undefined;
   if (!coach) return <NotFound />;
   const samplePosts = allPosts.filter((p) => p.coachId === coach.id).slice(0, 3);
+
+  const subscribe = async (tierId: string) => {
+    if (!user) {
+      navigate(`/auth?mode=signup&from=/coach/${coach.handle}`);
+      return;
+    }
+    try {
+      // The mock coach tier ids are local; in production these are real DB ids.
+      await startSubscriptionCheckout(tierId);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not start checkout");
+    }
+  };
 
   return (
     <AppShell>
@@ -69,8 +87,9 @@ const CoachProfile = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button asChild className="mt-3 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
-                    <Link to="/auth?mode=signup">Subscribe</Link>
+                  <Button onClick={() => subscribe(t.id)}
+                    className="mt-3 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
+                    Subscribe
                   </Button>
                 </div>
               ))}
