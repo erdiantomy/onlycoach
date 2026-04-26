@@ -50,6 +50,7 @@ export const startSubscriptionCheckout = async (tier_id: string, opts?: { coachH
     await openOnWeb(path);
     return;
   }
+  assertOnlineForCheckout();
   const fn = shouldUseXendit() ? "create-xendit-subscription" : "create-subscription-checkout";
   const { data, error } = await supabase.functions.invoke(fn, { body: { tier_id } });
   if (error) throw error;
