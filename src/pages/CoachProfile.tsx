@@ -7,6 +7,8 @@ import { Check, Lock, MessageCircle, Star, Users } from "lucide-react";
 import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
 import { startSubscriptionCheckout, changeSubscription, cancelSubscription } from "@/lib/checkout";
+import { isCheckoutBlockedOnDevice } from "@/lib/checkout";
+import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
