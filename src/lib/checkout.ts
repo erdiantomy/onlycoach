@@ -64,6 +64,7 @@ export const startBookingCheckout = async (slot_id: string, opts?: { coachHandle
     await openOnWeb(path);
     return;
   }
+  assertOnlineForCheckout();
   const fn = shouldUseXendit() ? "create-xendit-invoice" : "create-booking-checkout";
   const { data, error } = await supabase.functions.invoke(fn, { body: { slot_id } });
   if (error) throw error;
