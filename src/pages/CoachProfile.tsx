@@ -7,6 +7,8 @@ import { Check, Lock, MessageCircle, Star, Users } from "lucide-react";
 import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
 import { startSubscriptionCheckout, changeSubscription, cancelSubscription } from "@/lib/checkout";
+import { isCheckoutBlockedOnDevice } from "@/lib/checkout";
+import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -150,18 +152,29 @@ const CoachProfile = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button
-                      onClick={() => subscribe(t.id)}
-                      disabled={busy || isCurrent}
-                      className="mt-3 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90"
-                    >
-                      {isCurrent ? "Current plan" : isSubscribed ? "Switch to this" : "Subscribe"}
-                    </Button>
+                    {!isCheckoutBlockedOnDevice() && (
+                      <Button
+                        onClick={() => subscribe(t.id)}
+                        disabled={busy || isCurrent}
+                        className="mt-3 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90"
+                      >
+                        {isCurrent ? "Current plan" : isSubscribed ? "Switch to this" : "Subscribe"}
+                      </Button>
+                    )}
                   </div>
                 );
               })}
             </div>
-            {isSubscribed && !activeSub?.cancel_at_period_end && (
+            {isCheckoutBlockedOnDevice() && (
+              <ManageOnWebNotice
+                className="mt-4"
+                path={`/c/${coach.handle}`}
+                title="Subscribe on web"
+                description="Per App Store policy, subscriptions are completed on our website. You'll be redirected to your browser."
+                ctaLabel="Subscribe on web"
+              />
+            )}
+            {isSubscribed && !activeSub?.cancel_at_period_end && !isCheckoutBlockedOnDevice() && (
               <Button onClick={handleCancel} disabled={busy} variant="outline"
                 className="mt-3 w-full border-2 border-ink bg-surface text-destructive">
                 Cancel subscription
