@@ -1,9 +1,12 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { findCoach, posts as allPosts } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { Check, Lock, MessageCircle, Star, Users } from "lucide-react";
 import NotFound from "./NotFound";
+import { useSession } from "@/hooks/useSession";
+import { startSubscriptionCheckout } from "@/lib/checkout";
+import { toast } from "sonner";
 
 const CoachProfile = () => {
   const { handle } = useParams();
