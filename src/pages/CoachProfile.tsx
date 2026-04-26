@@ -198,6 +198,7 @@ const CoachProfile = () => {
               <Link to="/messages"><MessageCircle className="mr-2 h-4 w-4" /> Message coach</Link>
             </Button>
           </div>
+          </OfflineBoundary>
         </aside>
       </div>
     </AppShell>
