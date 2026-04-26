@@ -1,12 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { conversations, messagesByConv, findCoach } from "@/lib/mock";
 import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Messages = () => {
-  const [activeId, setActiveId] = useState<string | null>(conversations[0]?.id ?? null);
+  // Optional URL param — deep links from push notifications navigate to
+  // /messages/:conversationId so the right thread opens automatically.
+  const { conversationId } = useParams<{ conversationId?: string }>();
+  const [activeId, setActiveId] = useState<string | null>(
+    conversationId ?? conversations[0]?.id ?? null,
+  );
   const [draft, setDraft] = useState("");
+
+  // React to URL changes (e.g. notification tapped while app already open).
+  useEffect(() => {
+    if (conversationId && conversationId !== activeId) setActiveId(conversationId);
+  }, [conversationId, activeId]);
+
   const active = conversations.find((c) => c.id === activeId);
   const coach = active ? findCoach(active.coachId) : null;
   const thread = active ? messagesByConv[active.id] ?? [] : [];
