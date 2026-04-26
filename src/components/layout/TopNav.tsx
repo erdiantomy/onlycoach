@@ -20,9 +20,9 @@ export const TopNav = () => (
       <Link
         to="/"
         aria-label="ONLY COACH home"
-        className="-mx-2 -my-2 flex min-h-[44px] min-w-[44px] items-center rounded-md px-2 py-2 active:bg-accent/40 md:min-h-[48px]"
+        className="-mx-2 -my-2 flex min-h-[44px] min-w-[44px] max-w-[55%] items-center rounded-md px-2 py-2 active:bg-accent/40 md:min-h-[48px] md:max-w-none"
       >
-        <Logo variant="inline" className="h-9 md:h-10" />
+        <Logo variant="inline" className="h-8 sm:h-9 md:h-10" />
       </Link>
 
       <nav aria-label="Primary" className="hidden md:flex">
