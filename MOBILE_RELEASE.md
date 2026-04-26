@@ -32,19 +32,32 @@ End-to-end checklist for shipping ONLY/COACH to the **Google Play Store** and
 
 ## 1. Production configuration changes (REQUIRED before release)
 
-### 1a. Remove the dev hot-reload server URL
+### 1a. Server URL is now automatic ✅
 
-`capacitor.config.ts` currently contains:
-```ts
-server: {
-  url: "https://7ee943ba-...lovableproject.com?forceHideBadge=true",
-  cleartext: true,
-},
+`capacitor.config.ts` is **env-aware**:
+
+- Dev (`npx cap sync` with no env): includes `server.url` for hot-reload
+  from the Lovable preview.
+- Release (`CAP_ENV=production npx cap sync` — or any command run with
+  `NODE_ENV=production`): the `server` block is **omitted automatically**
+  and the native shells fall back to bundled `dist/`.
+
+Always run release syncs with the env var set:
+```bash
+npm run build
+CAP_ENV=production npx cap sync
+```
+or use the convenience scripts in `package.json`:
+```bash
+npm run mobile:sync:release   # CAP_ENV=production npx cap sync
+npm run mobile:preflight      # verifies generated native config has no server.url
 ```
 
-**Delete the entire `server` block** before building for release. If you
-ship with it, the App Store / Play Store binary will load the Lovable
-preview instead of the bundled `dist/`.
+You no longer need to manually edit `capacitor.config.ts` between dev
+and release. The preflight script verifies the generated
+`ios/App/App/capacitor.config.json` and `android/app/src/main/assets/capacitor.config.json`
+contain no `server.url` so the check is on the *actual* artifact shipped
+to the stores.
 
 ### 1b. Set a real `appId`
 
