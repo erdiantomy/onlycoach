@@ -35,7 +35,7 @@ export const openOnWeb = async (path: string): Promise<void> => {
       // Optional plugin — only present once the user installs @capacitor/browser
       // in their native shell. Use a runtime-only dynamic import so TS doesn't
       // require the package to be in node_modules.
-      const mod: any = await import(/* @vite-ignore */ "@capacitor/browser").catch(() => null);
+      const mod: any = await import(/* @vite-ignore */ ("@capacitor/browser" as string)).catch(() => null);
       if (mod?.Browser?.open) {
         await mod.Browser.open({ url, presentationStyle: "fullscreen" });
         return;
