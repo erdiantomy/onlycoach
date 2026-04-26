@@ -1,5 +1,10 @@
-// Built-in payments webhook handler.
-// Lovable's payments gateway forwards normalized events here.
+// Stripe webhook handler — checkout.session.completed, customer.subscription.*
+// HARDENED:
+//   - Event-level dedup via processed_webhook_events (idempotent across retries)
+//   - Bookings dedup via UNIQUE(stripe_payment_intent_id) — DB rejects dupes
+//   - subscriber_count only changes on real status transitions
+//   - cancel_at_period_end is reflected immediately so the UI shows the end date
+//   - tier_id resolved from price.id OR fallback subscription.metadata.tier_id
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
@@ -65,6 +70,22 @@ async function notifySubscribed(admin: any, mentee_id: string, coach_id: string,
   }
 }
 
+/** Resolve tier_id for a Stripe subscription update event.
+ *  Prefer subscription.metadata.tier_id (we set this in change-subscription).
+ *  Fallback: look up by stripe_price_id mapped on subscription_tiers.        */
+async function resolveTierId(admin: any, obj: any): Promise<string | null> {
+  const metaTier = obj.metadata?.tier_id;
+  if (metaTier) return metaTier;
+  const priceId = obj.items?.data?.[0]?.price?.id;
+  if (!priceId) return null;
+  const { data: t } = await admin
+    .from("subscription_tiers")
+    .select("id")
+    .eq("stripe_price_id", priceId)
+    .maybeSingle();
+  return t?.id ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -91,21 +112,36 @@ Deno.serve(async (req) => {
     return new Response("bad json", { status: 400, headers: corsHeaders });
   }
 
+  // ─── Event-level idempotency (Stripe retries up to 3 days) ────────────
+  const eventId = event.id ?? `${event.type ?? "unknown"}_${event.created ?? Date.now()}`;
+  const evType: string = event.type ?? "";
+  const { error: dedupErr } = await admin
+    .from("processed_webhook_events")
+    .insert({ id: `stripe_${eventId}`, provider: "stripe", event_type: evType });
+  if (dedupErr) {
+    if ((dedupErr as any).code === "23505") {
+      console.log("payments-webhook: duplicate event ignored", eventId);
+      return new Response(JSON.stringify({ ok: true, duplicate: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    console.error("payments-webhook: dedup insert error", dedupErr);
+    // fall through — better to process twice than drop a real event.
+  }
+
   try {
-    const type: string = event.type ?? "";
     const obj = event.data?.object ?? {};
 
-    if (type === "checkout.session.completed" || type === "transaction.completed") {
+    if (evType === "checkout.session.completed" || evType === "transaction.completed") {
       const md = obj.metadata ?? {};
 
-      // Subscription checkout
+      // ── Subscription checkout ─────────────────────────────────────────
       if (md.tier_id && md.mentee_id && md.coach_id) {
-        // Detect if this is an upgrade/downgrade (existing sub for same coach)
         const { data: prevSub } = await admin
           .from("subscriptions")
           .select("id, tier_id, status")
           .eq("mentee_id", md.mentee_id)
           .eq("coach_id", md.coach_id)
+          .neq("status", "canceled")
           .maybeSingle();
 
         const wasActive = prevSub && ["active", "trialing"].includes(prevSub.status);
@@ -116,13 +152,13 @@ Deno.serve(async (req) => {
           coach_id: md.coach_id,
           tier_id: md.tier_id,
           status: "active",
+          payment_provider: "stripe",
           stripe_subscription_id: obj.subscription ?? obj.id,
           current_period_end: obj.current_period_end
             ? new Date(obj.current_period_end * 1000).toISOString()
             : null,
         }, { onConflict: "mentee_id,coach_id" });
 
-        // Only run "new subscriber" side-effects on a genuinely new subscription
         if (!wasActive) {
           await bumpSubscriberCount(admin, md.coach_id, +1);
           await ensureConversation(admin, md.mentee_id, md.coach_id);
@@ -144,12 +180,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Booking checkout
+      // ── Booking checkout (idempotent via UNIQUE on stripe_payment_intent_id) ──
       if (md.booking_kind === "session" && md.slot_id) {
+        const pi = obj.payment_intent ?? obj.id;
         const { data: slot } = await admin.from("availability_slots")
-          .select("starts_at, duration_min, price_cents, coach_id").eq("id", md.slot_id).maybeSingle();
+          .select("starts_at, duration_min, price_cents, coach_id, is_booked")
+          .eq("id", md.slot_id).maybeSingle();
         if (slot) {
-          await admin.from("bookings").insert({
+          const { error: insErr } = await admin.from("bookings").insert({
             slot_id: md.slot_id,
             mentee_id: md.mentee_id,
             coach_id: slot.coach_id,
@@ -157,45 +195,45 @@ Deno.serve(async (req) => {
             duration_min: slot.duration_min,
             price_cents: slot.price_cents,
             status: "confirmed",
-            stripe_payment_intent_id: obj.payment_intent ?? obj.id,
+            payment_provider: "stripe",
+            stripe_payment_intent_id: pi,
             meeting_url: `https://meet.jit.si/onlycoach-${md.slot_id}`,
           });
-          await admin.from("availability_slots").update({ is_booked: true }).eq("id", md.slot_id);
+          if (insErr && (insErr as any).code !== "23505") throw insErr;
+          if (!slot.is_booked) {
+            await admin.from("availability_slots").update({ is_booked: true }).eq("id", md.slot_id);
+          }
         }
       }
     }
 
-    if (type === "subscription.updated" || type === "customer.subscription.updated") {
-      // Handle plan change via portal: price -> tier_id mapping
-      const newPriceId = obj.items?.data?.[0]?.price?.id;
-      let updatePayload: any = {
+    if (evType === "customer.subscription.updated" || evType === "subscription.updated") {
+      const tierId = await resolveTierId(admin, obj);
+      const updatePayload: Record<string, unknown> = {
         status: obj.status,
         current_period_end: obj.current_period_end
           ? new Date(obj.current_period_end * 1000).toISOString() : null,
         cancel_at_period_end: obj.cancel_at_period_end ?? false,
+        updated_at: new Date().toISOString(),
       };
-      if (newPriceId) {
-        const { data: matchTier } = await admin
-          .from("subscription_tiers").select("id").eq("stripe_price_id", newPriceId).maybeSingle();
-        if (matchTier) updatePayload.tier_id = matchTier.id;
-      }
+      if (tierId) updatePayload.tier_id = tierId;
       await admin.from("subscriptions")
         .update(updatePayload)
         .eq("stripe_subscription_id", obj.id);
     }
 
-    if (type === "subscription.canceled" || type === "customer.subscription.deleted") {
-      // End-of-period access: keep status until current_period_end naturally passes.
-      // Stripe sends this when fully canceled (period ended).
+    if (evType === "customer.subscription.deleted" || evType === "subscription.canceled") {
+      // Period actually ended → revoke. Only decrement if we're transitioning
+      // from a still-counted state (avoids double-decrement on retries).
       const { data: sub } = await admin
         .from("subscriptions")
         .select("mentee_id, coach_id, status")
         .eq("stripe_subscription_id", obj.id)
         .maybeSingle();
       await admin.from("subscriptions")
-        .update({ status: "canceled" })
+        .update({ status: "canceled", updated_at: new Date().toISOString() })
         .eq("stripe_subscription_id", obj.id);
-      if (sub && ["active", "trialing"].includes(sub.status)) {
+      if (sub && sub.status !== "canceled") {
         await bumpSubscriberCount(admin, sub.coach_id, -1);
       }
     }
@@ -204,7 +242,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("payments-webhook error:", msg, event?.type);
+    console.error("payments-webhook error:", msg, evType);
+    // Roll back the dedup row so Stripe's retry can reprocess.
+    await admin.from("processed_webhook_events").delete().eq("id", `stripe_${eventId}`);
     return new Response(JSON.stringify({ error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
