@@ -87,8 +87,9 @@ const CoachProfile = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button asChild className="mt-3 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
-                    <Link to="/auth?mode=signup">Subscribe</Link>
+                  <Button onClick={() => subscribe(t.id)}
+                    className="mt-3 w-full border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
+                    Subscribe
                   </Button>
                 </div>
               ))}
