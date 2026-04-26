@@ -18,7 +18,7 @@ export const TopNav = () => (
   <header className="sticky top-0 z-30 border-b-2 border-ink bg-background/95 pt-safe backdrop-blur supports-[backdrop-filter]:bg-background/80">
     <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-8">
       <Link to="/" aria-label="ONLY COACH home" className="flex items-center">
-        <Logo variant="inline" className="text-xl md:text-2xl" />
+        <Logo variant="inline" className="h-9 md:h-10" />
       </Link>
 
       <nav aria-label="Primary" className="hidden md:flex">
