@@ -77,6 +77,7 @@ export const changeSubscription = async (new_tier_id: string) => {
     await openOnWeb(`/account/billing?change=${new_tier_id}`);
     return { ok: true, redirected: true } as const;
   }
+  assertOnlineForCheckout();
   const { data, error } = await supabase.functions.invoke("change-subscription", { body: { new_tier_id } });
   if (error) throw error;
   return data;
