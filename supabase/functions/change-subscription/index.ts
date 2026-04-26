@@ -100,11 +100,17 @@ Deno.serve(async (req) => {
     const itemId = stripeSub.items?.data?.[0]?.id;
     if (!itemId) throw new Error("Subscription item not found");
 
-    // Swap price with proration
+    // Swap price with proration. Stamp metadata.tier_id so the
+    // subsequent customer.subscription.updated webhook can resolve our
+    // local tier without depending on stripe_price_id reverse-lookup.
     const updateParams = new URLSearchParams({
       "items[0][id]": itemId,
       "items[0][price]": priceId!,
       "proration_behavior": "always_invoice",
+      "cancel_at_period_end": "false",
+      "metadata[tier_id]": tier.id,
+      "metadata[mentee_id]": user.id,
+      "metadata[coach_id]": tier.coach_id,
     });
     const updResp = await fetch(`${GATEWAY_URL}/v1/subscriptions/${sub.stripe_subscription_id}`, {
       method: "POST",
@@ -115,10 +121,16 @@ Deno.serve(async (req) => {
     const updated = await updResp.json();
     if (!updResp.ok) throw new Error(`Stripe update ${updResp.status}: ${JSON.stringify(updated)}`);
 
-    // Reflect locally (webhook will also confirm)
+    // Reflect locally immediately — webhook will reconfirm shortly.
     await admin.from("subscriptions")
-      .update({ tier_id: tier.id, status: updated.status ?? "active" })
+      .update({
+        tier_id: tier.id,
+        status: updated.status ?? "active",
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", sub.id);
+
 
     return new Response(JSON.stringify({ ok: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
