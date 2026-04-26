@@ -1,0 +1,17 @@
+{
+  "name": "ONLY/COACH",
+  "short_name": "ONLY/COACH",
+  "description": "Coaching, one-to-one. Subscribe, message and book live sessions with your coach.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#d9d3bc",
+  "theme_color": "#d9d3bc",
+  "categories": ["education", "lifestyle", "social"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
