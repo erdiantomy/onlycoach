@@ -18,6 +18,13 @@ import ResetPassword from "./pages/ResetPassword.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Settings from "./pages/Settings.tsx";
 import Legal from "./pages/Legal.tsx";
+import Challenges from "./pages/Challenges.tsx";
+import ChallengeDetail from "./pages/ChallengeDetail.tsx";
+import Community from "./pages/Community.tsx";
+import Analytics from "./pages/Analytics.tsx";
+import Subscribers from "./pages/Subscribers.tsx";
+import Payouts from "./pages/Payouts.tsx";
+import Referrals from "./pages/Referrals.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 
@@ -34,6 +41,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/coach/:handle" element={<CoachProfile />} />
+          <Route path="/challenges" element={<Challenges />} />
+          <Route path="/challenges/:id" element={<ChallengeDetail />} />
 
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -42,12 +51,17 @@ const App = () => (
 
           <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           <Route path="/feed" element={<RequireAuth><Feed /></RequireAuth>} />
+          <Route path="/community" element={<RequireAuth><Community /></RequireAuth>} />
           <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/messages/:conversationId" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
           <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
           <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
           <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
+          <Route path="/studio/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
+          <Route path="/studio/subscribers" element={<RequireAuth><Subscribers /></RequireAuth>} />
+          <Route path="/studio/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
+          <Route path="/studio/referrals" element={<RequireAuth><Referrals /></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

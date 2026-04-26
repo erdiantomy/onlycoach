@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { posts, coaches } from "@/lib/mock";
-import { DollarSign, Plus, Users, FileText, MessageCircle } from "lucide-react";
+import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy } from "lucide-react";
 
 const Studio = () => {
   const me = coaches[0];
@@ -37,6 +37,24 @@ const Studio = () => {
               <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
             </div>
           ))}
+        </section>
+
+        <section className="mt-10">
+          <h2 className="font-display text-2xl">Manage</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { to: "/studio/analytics", label: "Analytics", icon: BarChart3 },
+              { to: "/studio/subscribers", label: "Subscribers", icon: Users },
+              { to: "/studio/payouts", label: "Payouts", icon: Banknote },
+              { to: "/studio/referrals", label: "Referrals", icon: Gift },
+              { to: "/challenges", label: "Challenges", icon: Trophy },
+            ].map(({ to, label, icon: Icon }) => (
+              <Link key={to} to={to} className="brutal-card-sm flex items-center gap-3 p-4 hover:bg-accent/30">
+                <Icon className="h-5 w-5 text-primary" />
+                <span className="font-display text-lg">{label}</span>
+              </Link>
+            ))}
+          </div>
         </section>
 
         <section className="mt-10">

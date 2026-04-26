@@ -122,3 +122,169 @@ export const bookings: Booking[] = [
 
 export const findCoach = (idOrHandle: string) =>
   coaches.find((c) => c.id === idOrHandle || c.handle === idOrHandle);
+
+// ----- Challenges / Cohorts -----
+export interface ChallengeLesson {
+  day: number;
+  title: string;
+  type: "text" | "video" | "audio" | "assignment";
+  preview?: string;
+}
+
+export interface Challenge {
+  id: string;
+  coachId: string;
+  title: string;
+  description: string;
+  price: number;
+  durationDays: number;
+  enrolled: number;
+  maxParticipants: number;
+  startsIn: string;
+  status: "open" | "active" | "completed";
+  curriculum: ChallengeLesson[];
+}
+
+export const challenges: Challenge[] = [
+  {
+    id: "ch1",
+    coachId: "c1",
+    title: "30-Day Strength Reset",
+    description: "Rebuild your squat, bench, and deadlift base with daily programming and weekly check-ins.",
+    price: 79,
+    durationDays: 30,
+    enrolled: 142,
+    maxParticipants: 200,
+    startsIn: "Starts Mon",
+    status: "open",
+    curriculum: [
+      { day: 1, title: "Movement assessment", type: "video", preview: "Bodyweight screen — record and submit." },
+      { day: 2, title: "Squat technique primer", type: "video" },
+      { day: 3, title: "Bench press setup", type: "video" },
+      { day: 4, title: "Recovery & sleep audit", type: "assignment" },
+      { day: 5, title: "Week 1 wrap", type: "text" },
+    ],
+  },
+  {
+    id: "ch2",
+    coachId: "c2",
+    title: "21-Day Habit Foundation",
+    description: "Install three durable daily habits without burnout. Daily 5-minute audio + assignment.",
+    price: 49,
+    durationDays: 21,
+    enrolled: 318,
+    maxParticipants: 500,
+    startsIn: "Starts in 2 days",
+    status: "open",
+    curriculum: [
+      { day: 1, title: "Pick your three", type: "audio", preview: "How to choose three habits that compound." },
+      { day: 2, title: "Habit stacking", type: "audio" },
+      { day: 3, title: "Friction audit", type: "assignment" },
+    ],
+  },
+  {
+    id: "ch3",
+    coachId: "c3",
+    title: "First Marathon in 16 Weeks",
+    description: "Beginner-friendly marathon block. Weekly long run, two key sessions, and recovery guidance.",
+    price: 129,
+    durationDays: 112,
+    enrolled: 86,
+    maxParticipants: 120,
+    startsIn: "Starts Apr 28",
+    status: "open",
+    curriculum: [
+      { day: 1, title: "Base run", type: "text", preview: "Easy 30 min — conversational pace." },
+      { day: 2, title: "Mobility flow", type: "video" },
+      { day: 3, title: "Tempo intro", type: "text" },
+    ],
+  },
+];
+
+// ----- Community posts -----
+export interface CommunityPost {
+  id: string;
+  coachId: string;
+  authorName: string;
+  authorIsCoach: boolean;
+  body: string;
+  createdAt: string;
+  isAnnouncement: boolean;
+  replies: number;
+}
+
+export const communityPosts: CommunityPost[] = [
+  { id: "cp1", coachId: "c1", authorName: "Maya Okafor", authorIsCoach: true, body: "Reminder: form-check window opens Friday. Drop your video in this thread.", createdAt: "1h", isAnnouncement: true, replies: 8 },
+  { id: "cp2", coachId: "c1", authorName: "Sam", authorIsCoach: false, body: "First time hitting a 1.5x bodyweight squat — appreciate the cues this month.", createdAt: "3h", isAnnouncement: false, replies: 3 },
+  { id: "cp3", coachId: "c2", authorName: "Theo Lindberg", authorIsCoach: true, body: "New audio Q&A is live. Send questions for next week below.", createdAt: "5h", isAnnouncement: true, replies: 12 },
+];
+
+// ----- Subscribers / CRM -----
+export interface SubscriberRow {
+  id: string;
+  name: string;
+  tier: string;
+  joined: string;
+  lastActive: string;
+  engagement: "high" | "medium" | "low";
+  tags: string[];
+}
+
+export const subscribers: SubscriberRow[] = [
+  { id: "s1", name: "Mei Tanaka", tier: "VIP", joined: "Jan 12", lastActive: "5m", engagement: "high", tags: ["high-value"] },
+  { id: "s2", name: "Budi Santoso", tier: "Pro", joined: "Feb 03", lastActive: "1h", engagement: "high", tags: [] },
+  { id: "s3", name: "Aisyah Rahmawati", tier: "Pro", joined: "Feb 19", lastActive: "1d", engagement: "medium", tags: ["new"] },
+  { id: "s4", name: "Carlos Mendoza", tier: "Basic", joined: "Mar 02", lastActive: "8d", engagement: "low", tags: ["at-risk"] },
+  { id: "s5", name: "Rina Putri", tier: "Pro", joined: "Mar 14", lastActive: "2h", engagement: "high", tags: [] },
+  { id: "s6", name: "Jonas Weber", tier: "Basic", joined: "Mar 21", lastActive: "12d", engagement: "low", tags: ["at-risk"] },
+];
+
+// ----- Payouts -----
+export interface PayoutRow {
+  id: string;
+  amount: number;
+  status: "pending" | "completed" | "failed";
+  date: string;
+}
+
+export const payouts: PayoutRow[] = [
+  { id: "po1", amount: 1240, status: "completed", date: "Apr 01" },
+  { id: "po2", amount: 1380, status: "completed", date: "Mar 01" },
+  { id: "po3", amount: 1170, status: "completed", date: "Feb 01" },
+];
+
+// ----- Daily stats (for analytics charts) -----
+export interface DailyStat {
+  date: string;
+  revenue: number;
+  newSubs: number;
+  churned: number;
+  views: number;
+}
+
+export const dailyStats: DailyStat[] = Array.from({ length: 30 }).map((_, i) => {
+  const d = new Date();
+  d.setDate(d.getDate() - (29 - i));
+  const day = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const base = 35 + Math.round(Math.sin(i / 3) * 12) + Math.round(Math.random() * 8);
+  return {
+    date: day,
+    revenue: base * 24,
+    newSubs: Math.max(0, Math.round(base / 12)),
+    churned: Math.max(0, Math.round((base / 30) - 1)),
+    views: base * 18 + Math.round(Math.random() * 60),
+  };
+});
+
+// ----- Referrals -----
+export interface ReferralRow {
+  id: string;
+  coachName: string;
+  joinedAt: string;
+  earnedToDate: number;
+}
+
+export const referrals: ReferralRow[] = [
+  { id: "r1", coachName: "Theo Lindberg", joinedAt: "Feb 02", earnedToDate: 184 },
+  { id: "r2", coachName: "Sara Halim", joinedAt: "Mar 18", earnedToDate: 92 },
+];
