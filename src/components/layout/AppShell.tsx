@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { TopNav } from "./TopNav";
 import { MobileTabBar } from "./MobileTabBar";
+import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 
 interface AppShellProps {
   children: ReactNode;
@@ -33,6 +34,7 @@ export const AppShell = ({ children, hideTabBar = false }: AppShellProps) => (
       {children}
     </main>
     {!hideTabBar && <MobileTabBar />}
+    <PwaInstallBanner />
   </div>
 );
 

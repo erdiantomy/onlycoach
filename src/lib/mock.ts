@@ -288,3 +288,35 @@ export const referrals: ReferralRow[] = [
   { id: "r1", coachName: "Theo Lindberg", joinedAt: "Feb 02", earnedToDate: 184 },
   { id: "r2", coachName: "Sara Halim", joinedAt: "Mar 18", earnedToDate: 92 },
 ];
+
+// ----- Billing / payments (mentee side) -----
+export interface PaymentRow {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  status: "paid" | "failed" | "refunded" | "pending";
+  method: "VA" | "GoPay" | "OVO" | "Card";
+}
+
+export const payments: PaymentRow[] = [
+  { id: "py1", date: "Apr 12", description: "Maya Lestari · Pro · Renewal",     amount: 19, status: "paid", method: "GoPay" },
+  { id: "py2", date: "Mar 12", description: "Maya Lestari · Pro · Renewal",     amount: 19, status: "paid", method: "GoPay" },
+  { id: "py3", date: "Feb 28", description: "Theo Lindberg · Basic · Renewal",  amount: 24, status: "paid", method: "VA" },
+  { id: "py4", date: "Feb 12", description: "Maya Lestari · Pro · Renewal",     amount: 19, status: "paid", method: "GoPay" },
+  { id: "py5", date: "Jan 28", description: "Theo Lindberg · Basic · New",      amount: 24, status: "paid", method: "VA" },
+  { id: "py6", date: "Jan 12", description: "Maya Lestari · Pro · New",         amount: 19, status: "paid", method: "Card" },
+];
+
+export interface PaymentMethod {
+  id: string;
+  kind: "VA" | "GoPay" | "OVO" | "Card";
+  label: string;
+  isDefault: boolean;
+}
+
+export const paymentMethods: PaymentMethod[] = [
+  { id: "pm1", kind: "GoPay", label: "GoPay · 0812-•••-3210", isDefault: true },
+  { id: "pm2", kind: "VA",    label: "BCA Virtual Account",    isDefault: false },
+  { id: "pm3", kind: "Card",  label: "Visa •••• 4242",         isDefault: false },
+];

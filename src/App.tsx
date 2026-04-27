@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import RequireRole from "./components/auth/RequireRole.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { I18nProvider } from "./lib/i18n.tsx";
@@ -41,6 +42,7 @@ const StudioChallenges = lazy(() => import("./pages/StudioChallenges.tsx"));
 const StudioTiers = lazy(() => import("./pages/StudioTiers.tsx"));
 const StudioContent = lazy(() => import("./pages/StudioContent.tsx"));
 const SavedPosts = lazy(() => import("./pages/SavedPosts.tsx"));
+const Billing = lazy(() => import("./pages/Billing.tsx"));
 const Notifications = lazy(() => import("./pages/Notifications.tsx"));
 
 const queryClient = new QueryClient();
@@ -82,17 +84,18 @@ const App = () => (
                 <Route path="/messages/:conversationId" element={<RequireAuth><Messages /></RequireAuth>} />
                 <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
                 <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
-                <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
-                <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
-                <Route path="/studio/content" element={<RequireAuth><StudioContent /></RequireAuth>} />
-                <Route path="/studio/challenges" element={<RequireAuth><StudioChallenges /></RequireAuth>} />
-                <Route path="/studio/tiers" element={<RequireAuth><StudioTiers /></RequireAuth>} />
-                <Route path="/studio/broadcast" element={<RequireAuth><MassMessage /></RequireAuth>} />
-                <Route path="/studio/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
-                <Route path="/studio/subscribers" element={<RequireAuth><Subscribers /></RequireAuth>} />
-                <Route path="/studio/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
-                <Route path="/studio/referrals" element={<RequireAuth><Referrals /></RequireAuth>} />
+                <Route path="/studio" element={<RequireRole role="coach"><Studio /></RequireRole>} />
+                <Route path="/studio/post/new" element={<RequireRole role="coach"><NewPost /></RequireRole>} />
+                <Route path="/studio/content" element={<RequireRole role="coach"><StudioContent /></RequireRole>} />
+                <Route path="/studio/challenges" element={<RequireRole role="coach"><StudioChallenges /></RequireRole>} />
+                <Route path="/studio/tiers" element={<RequireRole role="coach"><StudioTiers /></RequireRole>} />
+                <Route path="/studio/broadcast" element={<RequireRole role="coach"><MassMessage /></RequireRole>} />
+                <Route path="/studio/analytics" element={<RequireRole role="coach"><Analytics /></RequireRole>} />
+                <Route path="/studio/subscribers" element={<RequireRole role="coach"><Subscribers /></RequireRole>} />
+                <Route path="/studio/payouts" element={<RequireRole role="coach"><Payouts /></RequireRole>} />
+                <Route path="/studio/referrals" element={<RequireRole role="coach"><Referrals /></RequireRole>} />
                 <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+                <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

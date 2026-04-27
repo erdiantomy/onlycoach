@@ -193,11 +193,11 @@ const Me = () => {
               </div>
             </div>
           </Link>
-          <Link to="/settings" className="brutal-card-sm flex items-center gap-3 p-4">
+          <Link to="/billing" className="brutal-card-sm flex items-center gap-3 p-4">
             <CreditCard className="h-5 w-5 text-primary" />
             <div>
-              <div className="font-display">Payment methods</div>
-              <div className="text-xs text-muted-foreground">Manage card &amp; billing</div>
+              <div className="font-display">Billing</div>
+              <div className="text-xs text-muted-foreground">Subscriptions, methods, history</div>
             </div>
           </Link>
         </section>
