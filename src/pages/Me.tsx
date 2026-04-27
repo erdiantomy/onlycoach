@@ -122,7 +122,13 @@ const Me = () => {
         <header className="brutal-card flex items-center gap-4 p-5">
           <label className="relative h-16 w-16 shrink-0 cursor-pointer border-2 border-ink bg-accent">
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              <img
+                src={profile.avatar_url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
             ) : null}
             <span className="absolute inset-0 flex items-center justify-center bg-ink/40 text-ink-foreground opacity-0 transition-opacity hover:opacity-100">
               <Camera className="h-5 w-5" />

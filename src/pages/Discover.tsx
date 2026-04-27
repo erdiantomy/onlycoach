@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { CoachCard } from "@/components/coach/CoachCard";
-import { coaches, type Niche } from "@/lib/mock";
+import { type Niche } from "@/lib/mock";
+import { useCoaches } from "@/hooks/useCoaches";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { cn, formatIdr } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const PRICE_MIN = 0;
 const PRICE_MAX = 200;
 
 const Discover = () => {
+  const { coaches, loading } = useCoaches();
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState<(typeof niches)[number]>("All");
   const [sort, setSort] = useState<Sort>("rating");
@@ -45,7 +47,7 @@ const Discover = () => {
         if (sort === "price-asc") return aMin - bMin;
         return bMin - aMin;
       });
-  }, [query, niche, sort, maxPrice]);
+  }, [coaches, query, niche, sort, maxPrice]);
 
   const filtersActive = niche !== "All" || maxPrice < PRICE_MAX || sort !== "rating";
 
@@ -119,7 +121,19 @@ const Discover = () => {
           )}
         </div>
 
-        {results.length === 0 ? (
+        {loading && coaches.length === 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} aria-hidden className="brutal-card-sm overflow-hidden">
+                <div className="aspect-[4/5] animate-pulse border-b-2 border-ink bg-surface" />
+                <div className="space-y-2 p-4">
+                  <div className="h-3 w-2/3 animate-pulse bg-surface" />
+                  <div className="h-3 w-1/3 animate-pulse bg-surface" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : results.length === 0 ? (
           <div className="brutal-card p-10 text-center">
             <p className="font-display text-xl">No coaches match.</p>
             <p className="mt-2 text-sm text-muted-foreground">Try a different niche, raise the price ceiling, or clear filters.</p>

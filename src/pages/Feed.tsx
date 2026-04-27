@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
-import { posts, findCoach } from "@/lib/mock";
+import { findCoach } from "@/lib/mock";
+import { useFeed } from "@/hooks/useFeed";
 import { Bookmark, Heart, Lock, MessageSquare, Image as ImageIcon, FileText, PlayCircle, Send } from "lucide-react";
 import { useSavedPosts } from "@/hooks/useSavedPosts";
 import { usePostEngagement } from "@/hooks/usePostEngagement";
@@ -16,6 +17,7 @@ const mediaIcon = {
 } as const;
 
 const Feed = () => {
+  const { posts, loading } = useFeed();
   const { isSaved, toggle } = useSavedPosts();
   const { isLiked, toggleLike, commentsFor, addComment, removeComment } = usePostEngagement();
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
@@ -42,9 +44,36 @@ const Feed = () => {
           </Link>
         </header>
 
+        {loading && posts.length === 0 ? (
+          <div className="space-y-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} aria-hidden className="brutal-card overflow-hidden">
+                <div className="border-b-2 border-ink bg-surface px-4 py-3">
+                  <div className="h-4 w-32 animate-pulse bg-background" />
+                </div>
+                <div className="space-y-2 p-4">
+                  <div className="h-3 w-full animate-pulse bg-surface" />
+                  <div className="h-3 w-3/4 animate-pulse bg-surface" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="brutal-card p-10 text-center">
+            <p className="font-display text-xl">Your feed is empty.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Subscribe to a coach to start filling it.
+            </p>
+            <Link to="/discover"
+              className="mt-4 inline-block border-2 border-ink bg-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide text-ink-foreground shadow-brutal-sm">
+              Find coaches
+            </Link>
+          </div>
+        ) : (
         <div className="space-y-5">
           {posts.map((p) => {
-            const coach = findCoach(p.coachId)!;
+            const coach = findCoach(p.coachId);
+            if (!coach) return null;
             const locked = p.requiredTier !== null;
             const liked = isLiked(p.id);
             const localComments = commentsFor(p.id);
@@ -147,6 +176,7 @@ const Feed = () => {
             );
           })}
         </div>
+        )}
       </div>
     </AppShell>
   );
