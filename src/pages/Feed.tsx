@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { findCoach } from "@/lib/mock";
 import { useFeed } from "@/hooks/useFeed";
-import { Bookmark, Heart, Lock, MessageSquare, Image as ImageIcon, FileText, PlayCircle, Send } from "lucide-react";
+import { Bookmark, Heart, Lock, MessageSquare, Image as ImageIcon, FileText, PlayCircle, RefreshCw, Send } from "lucide-react";
 import { useSavedPosts } from "@/hooks/useSavedPosts";
 import { usePostEngagement } from "@/hooks/usePostEngagement";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -23,6 +24,16 @@ const Feed = () => {
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
+  const refresh = useCallback(async () => {
+    // Reload the page to refetch the feed. useFeed is mount-keyed so the
+    // simplest reliable refresh is to bounce the route data; in production
+    // we'd swap to react-query and call queryClient.invalidateQueries().
+    await new Promise((r) => setTimeout(r, 400));
+    window.location.reload();
+  }, []);
+
+  const { pull, refreshing } = usePullToRefresh({ onRefresh: refresh });
+
   const submitComment = (postId: string) => {
     const body = drafts[postId];
     if (!body?.trim()) return;
@@ -33,6 +44,21 @@ const Feed = () => {
 
   return (
     <AppShell>
+      {(pull > 0 || refreshing) && (
+        <div
+          aria-hidden
+          style={{ height: pull }}
+          className="flex items-center justify-center overflow-hidden bg-accent/30 transition-[height] md:hidden"
+        >
+          <RefreshCw
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              refreshing && "animate-spin",
+            )}
+            style={{ transform: refreshing ? undefined : `rotate(${Math.min(pull * 4, 360)}deg)` }}
+          />
+        </div>
+      )}
       <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-8 md:py-12">
         <header className="mb-6 flex items-end justify-between gap-3">
           <div>
