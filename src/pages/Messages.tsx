@@ -4,9 +4,26 @@ import { AppShell } from "@/components/layout/AppShell";
 import { OfflineBoundary } from "@/components/OfflineBoundary";
 import { useMessageOutbox } from "@/hooks/useMessageOutbox";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { conversations, messagesByConv, findCoach } from "@/lib/mock";
-import { AlertCircle, Clock, RefreshCw, Send } from "lucide-react";
+import { AlertCircle, Clock, Mic, RefreshCw, Send, Square, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+interface VoiceMessage {
+  id: string;
+  conversationId: string;
+  url: string;
+  durationMs: number;
+  at: string;
+}
+
+const formatTime = (ms: number) => {
+  const total = Math.round(ms / 1000);
+  const m = Math.floor(total / 60).toString().padStart(2, "0");
+  const s = (total % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+};
 
 const Messages = () => {
   // Optional URL param — deep links from push notifications navigate to
@@ -16,6 +33,8 @@ const Messages = () => {
     conversationId ?? conversations[0]?.id ?? null,
   );
   const [draft, setDraft] = useState("");
+  const [voiceMessages, setVoiceMessages] = useState<VoiceMessage[]>([]);
+  const voice = useVoiceRecorder();
 
   // React to URL changes (e.g. notification tapped while app already open).
   useEffect(() => {
@@ -57,6 +76,36 @@ const Messages = () => {
     // Try immediately if online — if not, item stays queued.
     if (online) flush(sendOne);
   };
+
+  const handleVoiceToggle = async () => {
+    if (voice.status === "unsupported") {
+      toast.error("Voice notes need a microphone-capable browser.");
+      return;
+    }
+    if (voice.status === "recording") {
+      voice.stop();
+    } else {
+      await voice.start();
+    }
+  };
+
+  const sendVoice = () => {
+    if (!voice.clip || !activeId) return;
+    setVoiceMessages((prev) => [
+      ...prev,
+      {
+        id: `vm_${Date.now()}`,
+        conversationId: activeId,
+        url: voice.clip!.url,
+        durationMs: voice.clip!.durationMs,
+        at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    voice.reset();
+    toast.success("Voice note sent");
+  };
+
+  const activeVoice = voiceMessages.filter((v) => v.conversationId === activeId);
 
   return (
     <AppShell>
@@ -116,6 +165,20 @@ const Messages = () => {
                       </div>
                     </div>
                   ))}
+                  {/* Voice notes the user has sent in this conversation. */}
+                  {activeVoice.map((v) => (
+                    <div key={v.id} className="flex justify-end">
+                      <div className="max-w-[80%] border-2 border-ink bg-accent px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Mic className="h-3.5 w-3.5" aria-hidden />
+                          <audio controls src={v.url} className="h-8" />
+                        </div>
+                        <div className="mt-1 text-right text-[10px] uppercase opacity-70">
+                          {formatTime(v.durationMs)} · {v.at}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                   {/* Pending / failed outgoing messages — visible to user as their own bubbles with state. */}
                   {outbox.map((item) => (
                     <div key={item.id} className="flex justify-end">
@@ -150,8 +213,60 @@ const Messages = () => {
                   ))}
                 </div>
 
+                {voice.status === "recording" && (
+                  <div className="flex items-center justify-between gap-3 border-t-2 border-ink bg-destructive/10 px-4 py-2 text-sm">
+                    <span className="inline-flex items-center gap-2 font-mono">
+                      <span aria-hidden className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-destructive" />
+                      Recording · {formatTime(voice.durationMs)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={voice.stop}
+                      className="inline-flex items-center gap-1 border-2 border-ink bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+                      <Square className="h-3 w-3" /> Stop
+                    </button>
+                  </div>
+                )}
+                {voice.status === "stopped" && voice.clip && (
+                  <div className="flex flex-wrap items-center gap-2 border-t-2 border-ink bg-accent/30 px-3 py-2 text-sm">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Voice note · {formatTime(voice.clip.durationMs)}
+                    </span>
+                    <audio controls src={voice.clip.url} className="h-8 flex-1 min-w-[140px]" />
+                    <button type="button" onClick={voice.reset} aria-label="Discard voice note"
+                      className="border-2 border-ink bg-surface p-1.5 hover:bg-destructive/20">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={sendVoice}
+                      className="inline-flex items-center gap-1 border-2 border-ink bg-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-foreground shadow-brutal-sm">
+                      <Send className="h-3 w-3" /> Send
+                    </button>
+                  </div>
+                )}
+                {voice.status === "denied" && (
+                  <div className="flex items-center justify-between gap-2 border-t-2 border-ink bg-destructive/10 px-4 py-2 text-xs">
+                    <span className="text-destructive">Microphone access denied. Update site permissions to record.</span>
+                    <button type="button" onClick={voice.reset} aria-label="Dismiss" className="text-muted-foreground hover:text-foreground">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit}
                   className="flex items-center gap-2 border-t-2 border-ink bg-surface p-3">
+                  <button
+                    type="button"
+                    onClick={handleVoiceToggle}
+                    aria-label={voice.status === "recording" ? "Stop recording" : "Record voice note"}
+                    aria-pressed={voice.status === "recording"}
+                    disabled={voice.status === "unsupported"}
+                    className={cn(
+                      "border-2 border-ink p-2 shadow-brutal-sm disabled:opacity-40",
+                      voice.status === "recording" ? "bg-destructive text-destructive-foreground" : "bg-surface",
+                    )}
+                  >
+                    {voice.status === "recording" ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </button>
                   <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={online ? "Write a message…" : "Offline — message will queue"}
                     className="flex-1 border-2 border-ink bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none" />
                   <button type="submit" aria-label="Send" disabled={!draft.trim()}

@@ -29,6 +29,7 @@ import MassMessage from "./pages/MassMessage.tsx";
 import StudioChallenges from "./pages/StudioChallenges.tsx";
 import StudioTiers from "./pages/StudioTiers.tsx";
 import SavedPosts from "./pages/SavedPosts.tsx";
+import Notifications from "./pages/Notifications.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
@@ -60,6 +61,7 @@ const App = () => (
           <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           <Route path="/feed" element={<RequireAuth><Feed /></RequireAuth>} />
           <Route path="/saved" element={<RequireAuth><SavedPosts /></RequireAuth>} />
+          <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
           <Route path="/community" element={<RequireAuth><Community /></RequireAuth>} />
           <Route path="/messages" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/messages/:conversationId" element={<RequireAuth><Messages /></RequireAuth>} />
