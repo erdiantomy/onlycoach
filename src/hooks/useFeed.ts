@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { posts as mockPosts, type Post } from "@/lib/mock";
 
@@ -24,63 +24,52 @@ const relativeTime = (iso: string): string => {
   return `${days}d`;
 };
 
+const fetchFeed = async (): Promise<{ posts: Post[]; source: "supabase" | "mock" }> => {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, coach_id, body, media_type, required_tier_id, like_count, comment_count, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  const rows = (data as unknown as RawPostRow[] | null) ?? [];
+  if (rows.length === 0) return { posts: mockPosts, source: "mock" };
+
+  const mapped: Post[] = rows.map((r) => ({
+    id: r.id,
+    coachId: r.coach_id,
+    body: r.body,
+    createdAt: relativeTime(r.created_at),
+    requiredTier: r.required_tier_id,
+    mediaType: r.media_type,
+    likes: r.like_count ?? 0,
+    comments: r.comment_count ?? 0,
+  }));
+  return { posts: mapped, source: "supabase" };
+};
+
 /**
- * Fetch posts from Supabase. Returns the rows mapped into the existing
- * mock Post shape so Feed components don't need to be rewritten.
+ * Cached, deduped fetch of the feed via react-query.
  *
- * Falls back to mock data on error or empty result so the surface is
- * never blank in dev. RLS on the posts table is what enforces
- * tier gating server-side; this hook just renders whatever the user
- * has access to.
+ * - 30s staleTime so navigating Feed → CoachProfile → Feed reuses
+ *   the cached data instead of refetching.
+ * - RLS on the posts table is what enforces tier-based visibility
+ *   server-side; this hook just renders whatever the user has
+ *   access to.
+ * - On error or empty result, falls back to mock data so the UI is
+ *   never blank in dev.
  */
 export const useFeed = () => {
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
-  const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<"supabase" | "mock">("mock");
+  const query = useQuery({
+    queryKey: ["feed", "v1"],
+    queryFn: fetchFeed,
+    staleTime: 30_000,
+    placeholderData: { posts: mockPosts, source: "mock" as const },
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("posts")
-          .select("id, coach_id, body, media_type, required_tier_id, like_count, comment_count, created_at")
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (cancelled) return;
-        if (error) throw error;
-        const rows = (data as unknown as RawPostRow[] | null) ?? [];
-        if (rows.length === 0) {
-          setPosts(mockPosts);
-          setSource("mock");
-        } else {
-          const mapped: Post[] = rows.map((r) => ({
-            id: r.id,
-            coachId: r.coach_id,
-            body: r.body,
-            createdAt: relativeTime(r.created_at),
-            requiredTier: r.required_tier_id,
-            mediaType: r.media_type,
-            likes: r.like_count ?? 0,
-            comments: r.comment_count ?? 0,
-          }));
-          setPosts(mapped);
-          setSource("supabase");
-        }
-      } catch {
-        if (!cancelled) {
-          setPosts(mockPosts);
-          setSource("mock");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => { cancelled = true; };
-  }, []);
-
-  return { posts, loading, source };
+  return {
+    posts: query.data?.posts ?? mockPosts,
+    loading: query.isLoading,
+    source: query.data?.source ?? "mock",
+  };
 };

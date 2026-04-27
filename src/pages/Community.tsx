@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { coaches, communityPosts, findCoach, type CommunityPost } from "@/lib/mock";
+import { coaches, findCoach, type CommunityPost } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { Megaphone, MessageCircle, Send, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useCommunityPosts } from "@/hooks/useCommunityPosts";
 import { toast } from "sonner";
 
 const isUuid = (v: string) =>
@@ -13,12 +14,14 @@ const isUuid = (v: string) =>
 const Community = () => {
   const [activeCoach, setActiveCoach] = useState<string>(coaches[0].id);
   const [draft, setDraft] = useState("");
-  const [posts, setPosts] = useState<CommunityPost[]>(communityPosts);
+  const livePosts = useCommunityPosts(activeCoach);
+  const [optimistic, setOptimistic] = useState<CommunityPost[]>([]);
 
-  const coachPosts = useMemo(
-    () => posts.filter((p) => p.coachId === activeCoach),
-    [posts, activeCoach],
-  );
+  // When the coach changes, clear optimistic posts (they belong to the
+  // previous coach's channel).
+  useEffect(() => { setOptimistic([]); }, [activeCoach]);
+
+  const coachPosts: CommunityPost[] = [...optimistic, ...livePosts];
   const coach = findCoach(activeCoach);
 
   const submit = async (e: React.FormEvent) => {
@@ -36,7 +39,7 @@ const Community = () => {
       replies: 0,
     };
     // Optimistic UI — render immediately
-    setPosts((prev) => [post, ...prev]);
+    setOptimistic((prev) => [post, ...prev]);
     setDraft("");
     toast.success("Posted to the community");
 

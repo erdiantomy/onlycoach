@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { coaches as mockCoaches, type Coach } from "@/lib/mock";
 
@@ -25,82 +25,67 @@ interface RawCoachRow {
   }>;
 }
 
+const fetchCoaches = async (): Promise<{ coaches: Coach[]; source: "supabase" | "mock" }> => {
+  const { data, error } = await supabase
+    .from("coach_profiles")
+    .select(`
+      user_id,
+      niche,
+      rating,
+      subscriber_count,
+      is_published,
+      profiles:profiles!coach_profiles_user_id_fkey ( handle, display_name, headline, bio, avatar_url ),
+      subscription_tiers ( id, name, price_cents, perks, sort_order, is_active )
+    `)
+    .eq("is_published", true)
+    .limit(50);
+
+  if (error) throw error;
+  const rows = (data as unknown as RawCoachRow[] | null) ?? [];
+  if (rows.length === 0) return { coaches: mockCoaches, source: "mock" };
+
+  const mapped: Coach[] = rows.map((r) => ({
+    id: r.user_id,
+    handle: r.profiles?.handle ?? r.user_id.slice(0, 6),
+    name: r.profiles?.display_name ?? "Unnamed coach",
+    niche: ((r.niche as Coach["niche"]) ?? "Business"),
+    headline: r.profiles?.headline ?? "",
+    bio: r.profiles?.bio ?? "",
+    rating: Number(r.rating ?? 5),
+    subscribers: r.subscriber_count ?? 0,
+    tiers: (r.subscription_tiers ?? [])
+      .filter((t) => t.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        // IDR cents → USD-equivalent so formatIdr() renders right.
+        price: Math.round((t.price_cents ?? 0) / 16000),
+        perks: t.perks ?? [],
+      })),
+  }));
+  return { coaches: mapped, source: "supabase" };
+};
+
 /**
- * Fetch published coaches from Supabase, joined with their profile and
- * tiers. Falls back to mock data on error or empty result so the UI is
- * never blank in dev / on a fresh project.
+ * Cached, deduped fetch of published coaches via react-query.
  *
- * Returns Coach[] in the shape the existing UI components already
- * expect (handle/name/niche/headline/bio/rating/subscribers/tiers).
+ * - 60s staleTime so a few back-to-back navigations between Discover,
+ *   Trending, and CoachProfile share one network call.
+ * - On error or empty result, falls back to mock data so the UI is
+ *   never blank in dev.
  */
 export const useCoaches = () => {
-  const [coaches, setCoaches] = useState<Coach[]>(mockCoaches);
-  const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<"supabase" | "mock">("mock");
+  const query = useQuery({
+    queryKey: ["coaches", "published"],
+    queryFn: fetchCoaches,
+    staleTime: 60_000,
+    placeholderData: { coaches: mockCoaches, source: "mock" as const },
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("coach_profiles")
-          .select(`
-            user_id,
-            niche,
-            rating,
-            subscriber_count,
-            is_published,
-            profiles:profiles!coach_profiles_user_id_fkey ( handle, display_name, headline, bio, avatar_url ),
-            subscription_tiers ( id, name, price_cents, perks, sort_order, is_active )
-          `)
-          .eq("is_published", true)
-          .limit(50);
-        if (cancelled) return;
-        if (error) throw error;
-        const rows = (data as unknown as RawCoachRow[] | null) ?? [];
-        if (rows.length === 0) {
-          setCoaches(mockCoaches);
-          setSource("mock");
-        } else {
-          const mapped: Coach[] = rows.map((r) => ({
-            id: r.user_id,
-            handle: r.profiles?.handle ?? r.user_id.slice(0, 6),
-            name: r.profiles?.display_name ?? "Unnamed coach",
-            niche: ((r.niche as Coach["niche"]) ?? "Business"),
-            headline: r.profiles?.headline ?? "",
-            bio: r.profiles?.bio ?? "",
-            rating: Number(r.rating ?? 5),
-            subscribers: r.subscriber_count ?? 0,
-            tiers: (r.subscription_tiers ?? [])
-              .filter((t) => t.is_active)
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((t) => ({
-                id: t.id,
-                name: t.name,
-                // Convert IDR cents → USD-equivalent so the existing
-                // formatIdr() helper renders the right amount. The mock
-                // layer is in USD-equivalents and DB is IDR cents.
-                price: Math.round((t.price_cents ?? 0) / 16000),
-                perks: t.perks ?? [],
-              })),
-          }));
-          setCoaches(mapped);
-          setSource("supabase");
-        }
-      } catch {
-        if (!cancelled) {
-          setCoaches(mockCoaches);
-          setSource("mock");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => { cancelled = true; };
-  }, []);
-
-  return { coaches, loading, source };
+  return {
+    coaches: query.data?.coaches ?? mockCoaches,
+    loading: query.isLoading,
+    source: query.data?.source ?? "mock",
+  };
 };
