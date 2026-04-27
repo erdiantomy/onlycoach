@@ -46,6 +46,7 @@ const Studio = () => {
             {[
               { to: "/studio/analytics", label: "Analytics", icon: BarChart3 },
               { to: "/studio/subscribers", label: "Subscribers", icon: Users },
+              { to: "/studio/content", label: "Content", icon: FileText },
               { to: "/studio/tiers", label: "Tiers", icon: Sparkles },
               { to: "/studio/payouts", label: "Payouts", icon: Banknote },
               { to: "/studio/referrals", label: "Referrals", icon: Gift },

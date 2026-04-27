@@ -5,7 +5,9 @@ import { OfflineBoundary } from "@/components/OfflineBoundary";
 import { useMessageOutbox } from "@/hooks/useMessageOutbox";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
-import { conversations, messagesByConv, findCoach } from "@/lib/mock";
+import { useConversations } from "@/hooks/useConversations";
+import { useThread } from "@/hooks/useThread";
+import { findCoach } from "@/lib/mock";
 import { AlertCircle, Clock, Mic, RefreshCw, Send, Square, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -29,8 +31,9 @@ const Messages = () => {
   // Optional URL param — deep links from push notifications navigate to
   // /messages/:conversationId so the right thread opens automatically.
   const { conversationId } = useParams<{ conversationId?: string }>();
+  const { conversations } = useConversations();
   const [activeId, setActiveId] = useState<string | null>(
-    conversationId ?? conversations[0]?.id ?? null,
+    conversationId ?? null,
   );
   const [draft, setDraft] = useState("");
   const [voiceMessages, setVoiceMessages] = useState<VoiceMessage[]>([]);
@@ -41,9 +44,14 @@ const Messages = () => {
     if (conversationId && conversationId !== activeId) setActiveId(conversationId);
   }, [conversationId, activeId]);
 
+  // Default to the first conversation once the list lands, if no URL hint.
+  useEffect(() => {
+    if (!activeId && conversations.length > 0) setActiveId(conversations[0].id);
+  }, [activeId, conversations]);
+
   const active = conversations.find((c) => c.id === activeId);
   const coach = active ? findCoach(active.coachId) : null;
-  const thread = active ? messagesByConv[active.id] ?? [] : [];
+  const { messages: thread } = useThread(activeId);
 
   // Network + outbox: messages typed offline are queued safely and flushed
   // when the connection comes back. Children always render so chat history

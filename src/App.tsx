@@ -39,6 +39,7 @@ const Referrals = lazy(() => import("./pages/Referrals.tsx"));
 const MassMessage = lazy(() => import("./pages/MassMessage.tsx"));
 const StudioChallenges = lazy(() => import("./pages/StudioChallenges.tsx"));
 const StudioTiers = lazy(() => import("./pages/StudioTiers.tsx"));
+const StudioContent = lazy(() => import("./pages/StudioContent.tsx"));
 const SavedPosts = lazy(() => import("./pages/SavedPosts.tsx"));
 const Notifications = lazy(() => import("./pages/Notifications.tsx"));
 
@@ -83,6 +84,7 @@ const App = () => (
                 <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
                 <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
                 <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
+                <Route path="/studio/content" element={<RequireAuth><StudioContent /></RequireAuth>} />
                 <Route path="/studio/challenges" element={<RequireAuth><StudioChallenges /></RequireAuth>} />
                 <Route path="/studio/tiers" element={<RequireAuth><StudioTiers /></RequireAuth>} />
                 <Route path="/studio/broadcast" element={<RequireAuth><MassMessage /></RequireAuth>} />
