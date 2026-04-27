@@ -43,6 +43,7 @@ const StudioTiers = lazy(() => import("./pages/StudioTiers.tsx"));
 const StudioContent = lazy(() => import("./pages/StudioContent.tsx"));
 const SavedPosts = lazy(() => import("./pages/SavedPosts.tsx"));
 const Billing = lazy(() => import("./pages/Billing.tsx"));
+const Trending = lazy(() => import("./pages/Trending.tsx"));
 const Notifications = lazy(() => import("./pages/Notifications.tsx"));
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/discover" element={<Discover />} />
+                <Route path="/trending" element={<Trending />} />
                 <Route path="/coach/:handle" element={<CoachProfile />} />
                 <Route path="/challenges" element={<Challenges />} />
                 <Route path="/challenges/:id" element={<ChallengeDetail />} />

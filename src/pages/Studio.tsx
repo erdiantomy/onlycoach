@@ -3,17 +3,18 @@ import { AppShell } from "@/components/layout/AppShell";
 import { posts, coaches } from "@/lib/mock";
 import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy, Sparkles } from "lucide-react";
 import { formatIdr } from "@/lib/utils";
+import { useCoachStats } from "@/hooks/useCoachStats";
 
 const Studio = () => {
   const me = coaches[0];
   const myPosts = posts.filter((p) => p.coachId === me.id);
-  const mrr = me.subscribers * 0.4 * 25;
+  const live = useCoachStats();
 
   const stats = [
-    { label: "Subscribers", value: me.subscribers.toLocaleString(), icon: Users },
-    { label: "Monthly revenue", value: formatIdr(Math.round(mrr)), icon: DollarSign },
-    { label: "Posts", value: myPosts.length, icon: FileText },
-    { label: "Unread DMs", value: 7, icon: MessageCircle },
+    { label: "Subscribers", value: live.subscriberCount.toLocaleString(), icon: Users },
+    { label: "Monthly revenue", value: formatIdr(Math.round(live.monthlyRevenueUsd)), icon: DollarSign },
+    { label: "Posts", value: live.postCount, icon: FileText },
+    { label: "Unread DMs", value: live.unreadDms, icon: MessageCircle },
   ];
 
   return (
