@@ -27,6 +27,7 @@ import Payouts from "./pages/Payouts.tsx";
 import Referrals from "./pages/Referrals.tsx";
 import MassMessage from "./pages/MassMessage.tsx";
 import StudioChallenges from "./pages/StudioChallenges.tsx";
+import StudioTiers from "./pages/StudioTiers.tsx";
 import SavedPosts from "./pages/SavedPosts.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
@@ -67,6 +68,7 @@ const App = () => (
           <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
           <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
           <Route path="/studio/challenges" element={<RequireAuth><StudioChallenges /></RequireAuth>} />
+          <Route path="/studio/tiers" element={<RequireAuth><StudioTiers /></RequireAuth>} />
           <Route path="/studio/broadcast" element={<RequireAuth><MassMessage /></RequireAuth>} />
           <Route path="/studio/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
           <Route path="/studio/subscribers" element={<RequireAuth><Subscribers /></RequireAuth>} />

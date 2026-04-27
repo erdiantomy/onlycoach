@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { posts, coaches } from "@/lib/mock";
-import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy } from "lucide-react";
+import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy, Sparkles } from "lucide-react";
 import { formatIdr } from "@/lib/utils";
 
 const Studio = () => {
@@ -46,6 +46,7 @@ const Studio = () => {
             {[
               { to: "/studio/analytics", label: "Analytics", icon: BarChart3 },
               { to: "/studio/subscribers", label: "Subscribers", icon: Users },
+              { to: "/studio/tiers", label: "Tiers", icon: Sparkles },
               { to: "/studio/payouts", label: "Payouts", icon: Banknote },
               { to: "/studio/referrals", label: "Referrals", icon: Gift },
               { to: "/studio/challenges", label: "Challenges", icon: Trophy },
