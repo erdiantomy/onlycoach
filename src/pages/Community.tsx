@@ -4,7 +4,11 @@ import { coaches, communityPosts, findCoach, type CommunityPost } from "@/lib/mo
 import { Button } from "@/components/ui/button";
 import { Megaphone, MessageCircle, Send, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const isUuid = (v: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
 const Community = () => {
   const [activeCoach, setActiveCoach] = useState<string>(coaches[0].id);
@@ -17,22 +21,43 @@ const Community = () => {
   );
   const coach = findCoach(activeCoach);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.trim()) return;
+    const body = draft.trim();
     const post: CommunityPost = {
       id: `cp${Date.now()}`,
       coachId: activeCoach,
       authorName: "You",
       authorIsCoach: false,
-      body: draft.trim(),
+      body,
       createdAt: "just now",
       isAnnouncement: false,
       replies: 0,
     };
+    // Optimistic UI — render immediately
     setPosts((prev) => [post, ...prev]);
     setDraft("");
     toast.success("Posted to the community");
+
+    // Best-effort mirror to Supabase. Mock-data coachIds ("c1"..."c6")
+    // skip — only real UUIDs are wired to the DB. RLS will reject if
+    // the user isn't subscribed to the coach.
+    if (isUuid(activeCoach)) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("community_posts").insert({
+            coach_id: activeCoach,
+            user_id: user.id,
+            body,
+            is_announcement: false,
+          });
+        }
+      } catch {
+        // optimistic UI keeps the post visible locally
+      }
+    }
   };
 
   return (

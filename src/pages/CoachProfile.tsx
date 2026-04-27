@@ -8,6 +8,8 @@ import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
 import { startSubscriptionCheckout, changeSubscription, cancelSubscription, OfflineError } from "@/lib/checkout";
 import { formatIdr } from "@/lib/utils";
+import { ReviewSection } from "@/components/coach/ReviewSection";
+import { BookingWidget } from "@/components/coach/BookingWidget";
 import { isCheckoutBlockedOnDevice } from "@/lib/checkout";
 import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { OfflineBoundary } from "@/components/OfflineBoundary";
@@ -136,6 +138,8 @@ const CoachProfile = () => {
               ))}
             </div>
           </section>
+
+          <ReviewSection coachId={coach.id} />
         </div>
 
         <aside className="md:sticky md:top-24 md:self-start">
@@ -198,6 +202,10 @@ const CoachProfile = () => {
             <Button asChild variant="outline" className="mt-3 w-full border-2 border-ink bg-surface">
               <Link to="/messages"><MessageCircle className="mr-2 h-4 w-4" /> Message coach</Link>
             </Button>
+          </div>
+
+          <div className="mt-6">
+            <BookingWidget coachName={coach.name} />
           </div>
           </OfflineBoundary>
         </aside>
