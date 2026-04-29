@@ -28,6 +28,8 @@ import Referrals from "./pages/Referrals.tsx";
 import MassMessage from "./pages/MassMessage.tsx";
 import StudioChallenges from "./pages/StudioChallenges.tsx";
 import SavedPosts from "./pages/SavedPosts.tsx";
+import MenteeProfile from "./pages/MenteeProfile.tsx";
+import ProfileRedirect from "./pages/ProfileRedirect.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
@@ -48,6 +50,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/coach/:handle" element={<CoachProfile />} />
+          <Route path="/mentee/:handle" element={<MenteeProfile />} />
+          <Route path="/@:handle" element={<ProfileRedirect />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenges/:id" element={<ChallengeDetail />} />
 

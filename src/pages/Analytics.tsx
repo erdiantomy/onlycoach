@@ -1,47 +1,145 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
-import { coaches, dailyStats, posts as allPosts, subscribers } from "@/lib/mock";
-import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Eye, Users } from "lucide-react";
+import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Eye } from "lucide-react";
 import { cn, formatIdr } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/useSession";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 
 type Range = "7d" | "30d" | "all";
 
+interface DailyStat {
+  stat_date: string;
+  revenue_cents: number;
+  new_subscribers: number;
+  churned_subscribers: number;
+  content_views: number;
+}
+
+interface PostRow {
+  id: string;
+  body: string;
+  like_count: number;
+  comment_count: number;
+}
+
+interface TierBreakdown {
+  id: string;
+  name: string;
+  price_cents: number;
+  sub_count: number;
+  revenue: number;
+  pct: number;
+}
+
 const Analytics = () => {
-  const me = coaches[0];
+  const { user } = useSession();
   const [range, setRange] = useState<Range>("30d");
 
-  const window = useMemo(() => {
-    if (range === "7d") return dailyStats.slice(-7);
-    if (range === "all") return dailyStats;
-    return dailyStats.slice(-30);
-  }, [range]);
+  const cutoff = () => {
+    const d = new Date();
+    if (range === "7d") d.setDate(d.getDate() - 7);
+    else if (range === "30d") d.setDate(d.getDate() - 30);
+    else d.setFullYear(d.getFullYear() - 5);
+    return d.toISOString().slice(0, 10);
+  };
 
-  const totals = useMemo(() => {
-    return window.reduce((acc, d) => {
-      acc.revenue += d.revenue;
-      acc.newSubs += d.newSubs;
-      acc.churned += d.churned;
-      acc.views += d.views;
-      return acc;
-    }, { revenue: 0, newSubs: 0, churned: 0, views: 0 });
-  }, [window]);
-
-  const churnRate = totals.newSubs + me.subscribers > 0
-    ? ((totals.churned / (totals.newSubs + me.subscribers)) * 100).toFixed(1)
-    : "0.0";
-
-  const peakRevenue = Math.max(...window.map((d) => d.revenue), 1);
-
-  const myPosts = allPosts.filter((p) => p.coachId === me.id);
-  const topPosts = [...myPosts].sort((a, b) => b.likes - a.likes).slice(0, 5);
-
-  const tierBreakdown = me.tiers.map((t, i) => {
-    const sliceSubs = subscribers.filter((s) => s.tier === t.name).length || (me.subscribers / me.tiers.length);
-    const revenue = sliceSubs * t.price;
-    const pct = (sliceSubs / Math.max(me.subscribers, 1)) * 100;
-    return { ...t, sliceSubs, revenue, pct, idx: i };
+  const { data: stats = [] } = useQuery<DailyStat[]>({
+    queryKey: ["analytics-stats", user?.id, range],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("coach_daily_stats")
+        .select("stat_date, revenue_cents, new_subscribers, churned_subscribers, content_views")
+        .eq("coach_id", user!.id)
+        .gte("stat_date", cutoff())
+        .order("stat_date");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
+
+  const { data: topPosts = [] } = useQuery<PostRow[]>({
+    queryKey: ["analytics-posts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, body, like_count, comment_count")
+        .eq("coach_id", user!.id)
+        .order("like_count", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: tiers = [] } = useQuery<TierBreakdown[]>({
+    queryKey: ["analytics-tiers", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: tierData } = await supabase
+        .from("subscription_tiers")
+        .select("id, name, price_cents")
+        .eq("coach_id", user!.id)
+        .eq("is_active", true);
+
+      const tierList = tierData ?? [];
+      if (!tierList.length) return [];
+
+      const counts = await Promise.all(
+        tierList.map(async (t) => {
+          const { count } = await supabase
+            .from("subscriptions")
+            .select("id", { count: "exact", head: true })
+            .eq("tier_id", t.id)
+            .eq("status", "active");
+          return { ...t, sub_count: count ?? 0 };
+        }),
+      );
+      const totalSubs = counts.reduce((s, t) => s + t.sub_count, 0);
+      return counts.map((t) => ({
+        id: t.id,
+        name: t.name,
+        price_cents: t.price_cents,
+        sub_count: t.sub_count,
+        revenue: (t.sub_count * t.price_cents) / 100,
+        pct: totalSubs > 0 ? (t.sub_count / totalSubs) * 100 : 0,
+      }));
+    },
+  });
+
+  const totals = stats.reduce(
+    (acc, d) => ({
+      revenue: acc.revenue + d.revenue_cents / 100,
+      newSubs: acc.newSubs + d.new_subscribers,
+      churned: acc.churned + d.churned_subscribers,
+      views: acc.views + d.content_views,
+    }),
+    { revenue: 0, newSubs: 0, churned: 0, views: 0 },
+  );
+
+  const churnRate =
+    totals.newSubs + totals.churned > 0
+      ? ((totals.churned / (totals.newSubs + totals.churned)) * 100).toFixed(1)
+      : "0.0";
+
+  const chartData = stats.map((d) => ({
+    date: d.stat_date.slice(5),
+    revenue: +(d.revenue_cents / 100).toFixed(2),
+    newSubs: d.new_subscribers,
+    views: d.content_views,
+  }));
 
   return (
     <AppShell>
@@ -74,41 +172,63 @@ const Analytics = () => {
 
         <section className="mt-8 brutal-card-sm p-5">
           <h2 className="font-display text-xl">Revenue trend</h2>
-          <div className="mt-5 flex h-40 items-end gap-1">
-            {window.map((d) => (
-              <div key={d.date} className="flex flex-1 flex-col items-center justify-end" title={`${d.date}: ${formatIdr(d.revenue)}`}>
-                <div
-                  className="w-full border-2 border-ink bg-primary"
-                  style={{ height: `${Math.max(4, (d.revenue / peakRevenue) * 100)}%` }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
-            <span>{window[0]?.date}</span>
-            <span>{window[window.length - 1]?.date}</span>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="mt-6 flex h-40 items-center justify-center text-sm text-muted-foreground">
+              No data yet for this period
+            </div>
+          ) : (
+            <div className="mt-4 h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    formatter={(value: number) => [formatIdr(value), "Revenue"]}
+                    contentStyle={{ border: "2px solid hsl(var(--ink))", borderRadius: 0, background: "hsl(var(--surface))" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fill="url(#revenueGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </section>
 
         <section className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="brutal-card-sm p-5">
             <h2 className="font-display text-xl">Revenue by tier</h2>
-            <div className="mt-4 space-y-3">
-              {tierBreakdown.map((t) => (
-                <div key={t.id}>
-                  <div className="flex items-baseline justify-between text-sm">
-                    <span className="font-semibold">{t.name}</span>
-                    <span className="text-muted-foreground">{formatIdr(t.revenue)} · {Math.round(t.sliceSubs)} subs</span>
+            {tiers.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">No active tiers — create one in Settings.</p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {tiers.map((t, idx) => (
+                  <div key={t.id}>
+                    <div className="flex items-baseline justify-between text-sm">
+                      <span className="font-semibold">{t.name}</span>
+                      <span className="text-muted-foreground">{formatIdr(t.revenue)} · {t.sub_count} subs</span>
+                    </div>
+                    <div className="mt-1 h-2 w-full border-2 border-ink bg-surface">
+                      <div
+                        className={cn("h-full", idx === 0 ? "bg-primary" : idx === 1 ? "bg-accent" : "bg-secondary")}
+                        style={{ width: `${t.pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="mt-1 h-2 w-full border-2 border-ink bg-surface">
-                    <div
-                      className={cn("h-full", t.idx === 0 ? "bg-primary" : t.idx === 1 ? "bg-accent" : "bg-secondary")}
-                      style={{ width: `${t.pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="brutal-card-sm p-5">
@@ -119,30 +239,12 @@ const Analytics = () => {
               ) : topPosts.map((p) => (
                 <div key={p.id} className="flex items-start justify-between gap-3 border-b-2 border-ink/10 pb-2 last:border-0">
                   <p className="line-clamp-2 text-sm">{p.body}</p>
-                  <div className="text-right text-xs uppercase tracking-wide text-muted-foreground">
-                    <div>{p.likes} likes</div>
-                    <div>{p.comments} comments</div>
+                  <div className="text-right text-xs uppercase tracking-wide text-muted-foreground shrink-0">
+                    <div>{p.like_count} likes</div>
+                    <div>{p.comment_count} comments</div>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-8 brutal-card-sm p-5">
-          <h2 className="font-display text-xl flex items-center gap-2"><Users className="h-5 w-5" /> Engagement</h2>
-          <div className="mt-3 grid gap-4 sm:grid-cols-3 text-sm">
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">DAU / MAU</div>
-              <div className="font-display text-2xl">38%</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Avg session</div>
-              <div className="font-display text-2xl">6m 12s</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">DM response rate</div>
-              <div className="font-display text-2xl">94%</div>
             </div>
           </div>
         </section>
@@ -151,7 +253,11 @@ const Analytics = () => {
   );
 };
 
-const StatCard = ({ label, value, icon: Icon }: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }) => (
+const StatCard = ({ label, value, icon: Icon }: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) => (
   <div className="brutal-card-sm p-4">
     <Icon className="h-5 w-5 text-primary" />
     <div className="mt-3 font-display text-2xl">{value}</div>
