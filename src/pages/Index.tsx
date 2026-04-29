@@ -6,10 +6,10 @@ import { Logo } from "@/components/brand/Logo";
 import { formatIdr } from "@/lib/utils";
 
 const featuredCoaches = [
-  { name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
-  { name: "Theo Lindberg", niche: "Mindset · Habits", price: 24, rating: 4.8 },
-  { name: "Ines Kovač", niche: "Run · Endurance", price: 15, rating: 4.9 },
-  { name: "Diego Ramos", niche: "Nutrition · Cut", price: 22, rating: 4.7 },
+  { handle: "maya", name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
+  { handle: "theo", name: "Theo Lindberg", niche: "Mindset · Habits", price: 24, rating: 4.8 },
+  { handle: "ines", name: "Ines Kovač", niche: "Run · Endurance", price: 15, rating: 4.9 },
+  { handle: "diego", name: "Diego Ramos", niche: "Nutrition · Cut", price: 22, rating: 4.7 },
 ];
 
 const Index = () => {
@@ -153,7 +153,7 @@ const Index = () => {
                   <div className="mt-4 flex items-center justify-between">
                     <span className="font-display text-sm">{formatIdr(c.price)}<span className="text-xs">/mo</span></span>
                     <Link
-                      to="/discover"
+                      to={`/coach/${c.handle}`}
                       className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"
                     >
                       View

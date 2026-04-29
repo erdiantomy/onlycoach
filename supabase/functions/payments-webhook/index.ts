@@ -5,7 +5,7 @@
 //   - subscriber_count only changes on real status transitions
 //   - cancel_at_period_end is reflected immediately so the UI shows the end date
 //   - tier_id resolved from price.id OR fallback subscription.metadata.tier_id
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 async function sendEmail(admin: any, to: string, subject: string, html: string) {

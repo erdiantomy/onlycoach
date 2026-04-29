@@ -1,6 +1,6 @@
 // Issues a short-lived signed URL for post-media, but only if the caller has
 // an active subscription to the post's required tier (or is the coach).
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 Deno.serve(async (req) => {
