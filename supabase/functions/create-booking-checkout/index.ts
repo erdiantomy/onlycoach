@@ -1,5 +1,5 @@
 // One-time payment checkout for a 1:1 booking slot.
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/stripe";

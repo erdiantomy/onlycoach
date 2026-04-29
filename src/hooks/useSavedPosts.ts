@@ -1,46 +1,54 @@
 import { useCallback, useEffect, useState } from "react";
 
-const STORAGE_KEY = "oc_saved_posts";
+const storageKey = (userId?: string) =>
+  userId ? `oc_saved_posts_${userId}` : "oc_saved_posts";
 
-const read = (): string[] => {
+const read = (key: string): string[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 };
 
-const write = (ids: string[]) => {
+const write = (key: string, ids: string[]) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  window.localStorage.setItem(key, JSON.stringify(ids));
 };
 
-/**
- * Local-first bookmarks. Mirrors to Supabase post_engagements on the
- * server; this hook owns optimistic state so the UI reacts instantly.
- */
-export const useSavedPosts = () => {
-  const [saved, setSaved] = useState<string[]>(() => read());
+export const useSavedPosts = (userId?: string) => {
+  const key = storageKey(userId);
+  const [saved, setSaved] = useState<string[]>(() => read(key));
+
+  // Re-load when user changes (login/logout).
+  useEffect(() => {
+    setSaved(read(key));
+  }, [key]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setSaved(read());
+      if (e.key === key) setSaved(read(key));
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [key]);
 
   const isSaved = useCallback((id: string) => saved.includes(id), [saved]);
 
-  const toggle = useCallback((id: string) => {
-    setSaved((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      write(next);
-      return next;
-    });
-  }, []);
+  const toggle = useCallback(
+    (id: string) => {
+      setSaved((prev) => {
+        const next = prev.includes(id)
+          ? prev.filter((x) => x !== id)
+          : [...prev, id];
+        write(key, next);
+        return next;
+      });
+    },
+    [key],
+  );
 
   return { saved, isSaved, toggle };
 };
