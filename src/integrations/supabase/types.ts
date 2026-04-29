@@ -470,6 +470,7 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string
+          follower_count: number
           handle: string
           headline: string | null
           id: string
@@ -480,6 +481,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name: string
+          follower_count?: number
           handle: string
           headline?: string | null
           id: string
@@ -490,10 +492,110 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string
+          follower_count?: number
           handle?: string
           headline?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      mentee_profiles: {
+        Row: {
+          user_id: string
+          interests: string[]
+          is_public: boolean
+          show_subscriptions: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          interests?: string[]
+          is_public?: boolean
+          show_subscriptions?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          interests?: string[]
+          is_public?: boolean
+          show_subscriptions?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          follower_id: string
+          following_id: string
+          created_at: string
+        }
+        Insert: {
+          follower_id: string
+          following_id: string
+          created_at?: string
+        }
+        Update: {
+          follower_id?: string
+          following_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      badges: {
+        Row: {
+          id: string
+          user_id: string
+          badge_type: string
+          label: string
+          icon: string
+          metadata: Json | null
+          earned_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          badge_type: string
+          label: string
+          icon?: string
+          metadata?: Json | null
+          earned_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          badge_type?: string
+          label?: string
+          icon?: string
+          metadata?: Json | null
+          earned_at?: string
+        }
+        Relationships: []
+      }
+      profile_views: {
+        Row: {
+          id: string
+          profile_id: string
+          viewer_id: string | null
+          referrer: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          viewer_id?: string | null
+          referrer?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          viewer_id?: string | null
+          referrer?: string | null
+          created_at?: string
         }
         Relationships: []
       }
