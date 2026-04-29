@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { ConnectedAccounts } from "@/components/auth/ConnectedAccounts";
 import { useI18n } from "@/lib/i18n";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
@@ -277,6 +278,8 @@ const Settings = () => {
             </form>
           )}
         </section>
+
+        <ConnectedAccounts />
 
         {/* Billing */}
         <section className="brutal-card-sm mt-4 p-5">
