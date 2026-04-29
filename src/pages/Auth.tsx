@@ -14,6 +14,8 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user } = useSession();
   const initialMode = params.get("mode") === "signup" ? "signup" : "signin";
+  const next = params.get("from") || params.get("next") || "/feed";
+  const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [method, setMethod] = useState<Method>("email");
   const [email, setEmail] = useState("");
@@ -25,8 +27,8 @@ const Auth = () => {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user) navigate("/feed", { replace: true });
-  }, [user, navigate]);
+    if (user) navigate(next, { replace: true });
+  }, [user, navigate, next]);
 
   const normalizePhone = (raw: string) => {
     const digits = raw.replace(/\D/g, "");
@@ -45,7 +47,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/feed`,
+            emailRedirectTo: callbackUrl,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -106,7 +108,12 @@ const Auth = () => {
   const google = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/feed` },
+      options: {
+        redirectTo: callbackUrl,
+        // Ask Google for offline access so refresh works without
+        // re-prompting the user every time the access token expires.
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
     });
     if (error) toast.error(error.message);
   };
@@ -114,7 +121,7 @@ const Auth = () => {
   const reset = async () => {
     if (!email) return toast.error("Enter your email first");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     });
     if (error) toast.error(error.message);
     else toast.success("Reset email sent");

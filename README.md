@@ -27,6 +27,43 @@ SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...   # service role, server-only
 ```
 
+## Auth providers
+
+The app ships with three sign-in methods. Email + password works out of
+the box once you've created the Supabase project. The other two need a
+quick provider configuration:
+
+### Google OAuth
+
+1. **Google Cloud Console** → APIs & Services → Credentials → "Create
+   credentials" → OAuth client ID → **Web application**.
+2. Authorized JavaScript origins:
+   - `http://localhost:5173`
+   - `https://<your-deployed-domain>`
+3. Authorized redirect URIs (one per environment):
+   - `http://localhost:5173/auth/callback`
+   - `https://<your-deployed-domain>/auth/callback`
+   - `https://<project-ref>.supabase.co/auth/v1/callback`
+4. **Supabase dashboard** → Authentication → Providers → **Google** →
+   enable, paste the Client ID + Client Secret, save.
+5. **Supabase dashboard** → Authentication → URL Configuration → add the
+   same `http(s)://…/auth/callback` URLs to "Redirect URLs".
+
+The button on `/auth` already points at `/auth/callback?next=…` so no
+code changes are needed once the provider is enabled.
+
+### Phone OTP (Indonesia + global)
+
+1. **Supabase dashboard** → Authentication → Providers → **Phone** →
+   pick a provider (Twilio, MessageBird, etc.), paste credentials.
+2. Numbers default to `+62` prefix in the UI; users can also paste any
+   E.164-formatted number.
+
+### Email magic links / signup
+
+Already enabled by default — Supabase sends from `noreply@…` unless you
+configure an SMTP provider in **Authentication → Email Templates**.
+
 ## Database
 
 Schema lives in `supabase/migrations/`. Apply with the Supabase CLI:

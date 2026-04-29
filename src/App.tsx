@@ -27,6 +27,7 @@ const Me = lazy(() => import("./pages/Me.tsx"));
 const Studio = lazy(() => import("./pages/Studio.tsx"));
 const NewPost = lazy(() => import("./pages/NewPost.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 const Legal = lazy(() => import("./pages/Legal.tsx"));
@@ -73,6 +74,7 @@ const App = () => (
                 <Route path="/challenges/:id" element={<ChallengeDetail />} />
 
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terms" element={<Legal kind="terms" />} />
                 <Route path="/privacy" element={<Legal kind="privacy" />} />
