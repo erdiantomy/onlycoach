@@ -3,6 +3,7 @@ import { TopNav } from "./TopNav";
 import { MobileTabBar } from "./MobileTabBar";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { SearchPalette } from "@/components/SearchPalette";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 interface AppShellProps {
   children: ReactNode;
@@ -26,6 +27,7 @@ export const AppShell = ({ children, hideTabBar = false }: AppShellProps) => (
     >
       Skip to content
     </a>
+    <OfflineBanner />
     <TopNav />
     <main
       id="main-content"

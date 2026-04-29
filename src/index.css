@@ -137,6 +137,23 @@
     background: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
   }
+
+  /*
+    Project-wide focus-visible ring. We use the brutalist "thick black
+    border + high-contrast outline" instead of the default browser blue
+    so it's recognizable on cream/sand backgrounds. Applies to anything
+    that takes focus (buttons, links, inputs) but only when keyboard nav
+    triggered the focus — mouse clicks stay clean.
+  */
+  *:focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  /* Native click on a button shouldn't show the keyboard ring. */
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 @layer components {
