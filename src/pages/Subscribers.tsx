@@ -1,38 +1,142 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
-import { coaches, subscribers, type SubscriberRow } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Search, Tag, StickyNote, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/useSession";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 type EngagementFilter = "all" | "high" | "medium" | "low";
 
+interface SubscriberRow {
+  mentee_id: string;
+  display_name: string | null;
+  handle: string | null;
+  tier_name: string | null;
+  subscribed_at: string;
+  status: string;
+  tags: string[];
+  note: string;
+}
+
+const AVAILABLE_TAGS = ["high-value", "at-risk", "new"];
+
 const Subscribers = () => {
-  const me = coaches[0];
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
-  const [tier, setTier] = useState<string>("all");
-  const [engagement, setEngagement] = useState<EngagementFilter>("all");
+  const [tierFilter, setTierFilter] = useState("all");
+  const [engagement] = useState<EngagementFilter>("all");
   const [openNote, setOpenNote] = useState<SubscriberRow | null>(null);
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [tags, setTags] = useState<Record<string, string[]>>(
-    Object.fromEntries(subscribers.map((s) => [s.id, s.tags])),
-  );
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
-  const tiers = ["all", ...me.tiers.map((t) => t.name)];
+  const { data: rows = [], isLoading } = useQuery<SubscriberRow[]>({
+    queryKey: ["subscribers", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      // Fetch subscriptions for this coach
+      const { data: subs, error } = await supabase
+        .from("subscriptions")
+        .select("mentee_id, created_at, status, subscription_tiers(name), profiles!subscriptions_mentee_id_fkey(display_name, handle)")
+        .eq("coach_id", user!.id)
+        .eq("status", "active");
+      if (error) throw error;
 
-  const rows = useMemo(() => subscribers.filter((s) => {
+      const menteeIds = (subs ?? []).map((s) => s.mentee_id);
+
+      // Fetch tags for all mentees
+      const { data: tagRows } = menteeIds.length > 0
+        ? await supabase.from("subscriber_tags").select("mentee_id, tag").eq("coach_id", user!.id).in("mentee_id", menteeIds)
+        : { data: [] };
+
+      // Fetch notes for all mentees
+      const { data: noteRows } = menteeIds.length > 0
+        ? await supabase.from("subscriber_notes").select("mentee_id, note").eq("coach_id", user!.id).in("mentee_id", menteeIds)
+        : { data: [] };
+
+      const tagsByMentee: Record<string, string[]> = {};
+      for (const t of tagRows ?? []) {
+        if (!tagsByMentee[t.mentee_id]) tagsByMentee[t.mentee_id] = [];
+        tagsByMentee[t.mentee_id].push(t.tag);
+      }
+      const notesByMentee: Record<string, string> = {};
+      for (const n of noteRows ?? []) {
+        notesByMentee[n.mentee_id] = n.note;
+      }
+
+      return (subs ?? []).map((s) => {
+        const p = s.profiles as unknown as { display_name: string | null; handle: string | null } | null;
+        const t = s.subscription_tiers as unknown as { name: string } | null;
+        return {
+          mentee_id: s.mentee_id,
+          display_name: p?.display_name ?? null,
+          handle: p?.handle ?? null,
+          tier_name: t?.name ?? null,
+          subscribed_at: s.created_at,
+          status: s.status,
+          tags: tagsByMentee[s.mentee_id] ?? [],
+          note: notesByMentee[s.mentee_id] ?? "",
+        };
+      });
+    },
+  });
+
+  const toggleTagMutation = useMutation({
+    mutationFn: async ({ menteeId, tag, active }: { menteeId: string; tag: string; active: boolean }) => {
+      if (!user) throw new Error("Not signed in");
+      if (active) {
+        // Remove tag
+        await supabase.from("subscriber_tags").delete()
+          .eq("coach_id", user.id).eq("mentee_id", menteeId).eq("tag", tag);
+      } else {
+        // Add tag
+        await supabase.from("subscriber_tags").insert({ coach_id: user.id, mentee_id: menteeId, tag });
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subscribers", user?.id] }),
+    onError: () => toast.error("Couldn't update tag"),
+  });
+
+  const saveNote = async () => {
+    if (!user || !openNote) return;
+    setSavingNote(true);
+    const { error } = await supabase.from("subscriber_notes").upsert({
+      coach_id: user.id,
+      mentee_id: openNote.mentee_id,
+      note: noteDraft,
+    }, { onConflict: "coach_id,mentee_id" });
+    setSavingNote(false);
+    if (error) {
+      toast.error("Couldn't save note");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["subscribers", user?.id] });
+    toast.success("Note saved");
+    setOpenNote(null);
+  };
+
+  const tiers = useMemo(() => {
+    const t = new Set(rows.map((r) => r.tier_name).filter(Boolean) as string[]);
+    return ["all", ...Array.from(t)];
+  }, [rows]);
+
+  const filtered = useMemo(() => rows.filter((s) => {
     const q = query.trim().toLowerCase();
-    const matchQuery = !q || s.name.toLowerCase().includes(q) || s.tier.toLowerCase().includes(q);
-    const matchTier = tier === "all" || s.tier === tier;
-    const matchEng = engagement === "all" || s.engagement === engagement;
-    return matchQuery && matchTier && matchEng;
-  }), [query, tier, engagement]);
+    const matchQuery = !q || (s.display_name ?? "").toLowerCase().includes(q) || (s.handle ?? "").toLowerCase().includes(q);
+    const matchTier = tierFilter === "all" || s.tier_name === tierFilter;
+    return matchQuery && matchTier;
+  }), [rows, query, tierFilter]);
 
   const exportCsv = () => {
-    const header = ["Name", "Tier", "Joined", "Last active", "Engagement", "Tags"];
-    const lines = rows.map((r) => [r.name, r.tier, r.joined, r.lastActive, r.engagement, (tags[r.id] ?? []).join("|")].join(","));
+    const header = ["Name", "Handle", "Tier", "Subscribed", "Status", "Tags"];
+    const lines = filtered.map((r) => [
+      r.display_name ?? "", r.handle ?? "", r.tier_name ?? "",
+      new Date(r.subscribed_at).toLocaleDateString(), r.status, r.tags.join("|"),
+    ].join(","));
     const csv = [header.join(","), ...lines].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -42,14 +146,6 @@ const Subscribers = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Exported subscriber list");
-  };
-
-  const toggleTag = (id: string, tag: string) => {
-    setTags((prev) => {
-      const current = prev[id] ?? [];
-      const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
-      return { ...prev, [id]: next };
-    });
   };
 
   return (
@@ -62,7 +158,9 @@ const Subscribers = () => {
         <header className="mt-4 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <span className="brutal-tag mb-3">Subscribers</span>
-            <h1 className="font-display text-3xl md:text-5xl">{rows.length} on the list</h1>
+            <h1 className="font-display text-3xl md:text-5xl">
+              {isLoading ? "…" : filtered.length} on the list
+            </h1>
           </div>
           <Button onClick={exportCsv}
             className="border-2 border-ink bg-surface text-foreground shadow-brutal-sm hover:bg-accent/50">
@@ -79,26 +177,24 @@ const Subscribers = () => {
           </label>
           <div className="flex gap-1 overflow-x-auto md:flex-wrap md:overflow-visible">
             {tiers.map((t) => (
-              <button key={t} onClick={() => setTier(t)} className={cn(
+              <button key={t} onClick={() => setTierFilter(t)} className={cn(
                 "shrink-0 border-2 border-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide",
-                tier === t ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
+                tierFilter === t ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
               )}>{t}</button>
-            ))}
-          </div>
-          <div className="flex gap-1">
-            {(["all", "high", "medium", "low"] as EngagementFilter[]).map((e) => (
-              <button key={e} onClick={() => setEngagement(e)} className={cn(
-                "shrink-0 border-2 border-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide",
-                engagement === e ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
-              )}>{e}</button>
             ))}
           </div>
         </div>
 
-        {rows.length === 0 ? (
+        {isLoading ? (
+          <div className="brutal-card mt-6 p-8 text-center animate-pulse">
+            <div className="h-6 w-48 bg-surface border-2 border-ink mx-auto" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="brutal-card mt-6 p-10 text-center">
-            <p className="font-display text-xl">No subscribers match.</p>
-            <p className="mt-2 text-sm text-muted-foreground">Try adjusting your filters.</p>
+            <p className="font-display text-xl">{rows.length === 0 ? "No subscribers yet." : "No subscribers match."}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {rows.length === 0 ? "Share your profile to get your first subscriber." : "Try adjusting your filters."}
+            </p>
           </div>
         ) : (
           <div className="brutal-card mt-6 overflow-x-auto">
@@ -106,45 +202,41 @@ const Subscribers = () => {
               <thead className="bg-surface text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="border-b-2 border-ink px-4 py-3">Name</th>
+                  <th className="border-b-2 border-ink px-4 py-3">Handle</th>
                   <th className="border-b-2 border-ink px-4 py-3">Tier</th>
-                  <th className="border-b-2 border-ink px-4 py-3">Joined</th>
-                  <th className="border-b-2 border-ink px-4 py-3">Last active</th>
-                  <th className="border-b-2 border-ink px-4 py-3">Engagement</th>
+                  <th className="border-b-2 border-ink px-4 py-3">Subscribed</th>
                   <th className="border-b-2 border-ink px-4 py-3">Tags</th>
                   <th className="border-b-2 border-ink px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((s) => (
-                  <tr key={s.id} className="border-b-2 border-ink/10 last:border-0">
-                    <td className="px-4 py-3 font-semibold">{s.name}</td>
-                    <td className="px-4 py-3">{s.tier}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.joined}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.lastActive}</td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        "border-2 border-ink px-2 py-0.5 text-xs uppercase",
-                        s.engagement === "high" && "bg-primary/20",
-                        s.engagement === "medium" && "bg-accent/30",
-                        s.engagement === "low" && "bg-destructive/10 text-destructive",
-                      )}>{s.engagement}</span>
+                {filtered.map((s) => (
+                  <tr key={s.mentee_id} className="border-b-2 border-ink/10 last:border-0">
+                    <td className="px-4 py-3 font-semibold">{s.display_name ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">@{s.handle ?? "—"}</td>
+                    <td className="px-4 py-3">{s.tier_name ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(s.subscribed_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {["high-value", "at-risk", "new"].map((tag) => {
-                          const active = (tags[s.id] ?? []).includes(tag);
+                        {AVAILABLE_TAGS.map((tag) => {
+                          const active = s.tags.includes(tag);
                           return (
-                            <button key={tag} onClick={() => toggleTag(s.id, tag)} className={cn(
-                              "inline-flex items-center gap-1 border-2 border-ink px-2 py-0.5 text-[10px] uppercase",
-                              active ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
-                            )}><Tag className="h-2.5 w-2.5" /> {tag}</button>
+                            <button key={tag}
+                              onClick={() => toggleTagMutation.mutate({ menteeId: s.mentee_id, tag, active })}
+                              className={cn(
+                                "inline-flex items-center gap-1 border-2 border-ink px-2 py-0.5 text-[10px] uppercase",
+                                active ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
+                              )}><Tag className="h-2.5 w-2.5" /> {tag}</button>
                           );
                         })}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setOpenNote(s)} className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground">
-                        <StickyNote className="h-3.5 w-3.5" /> Note
+                      <button onClick={() => { setOpenNote(s); setNoteDraft(s.note); }}
+                        className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground">
+                        <StickyNote className="h-3.5 w-3.5" /> {s.note ? "Edit note" : "Note"}
                       </button>
                     </td>
                   </tr>
@@ -160,19 +252,19 @@ const Subscribers = () => {
           onClick={() => setOpenNote(null)}>
           <div className="brutal-card w-full max-w-md bg-surface p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-xl">Note · {openNote.name}</h3>
+              <h3 className="font-display text-xl">Note · {openNote.display_name ?? openNote.handle}</h3>
               <button onClick={() => setOpenNote(null)}><X className="h-5 w-5" /></button>
             </div>
             <textarea
-              value={notes[openNote.id] ?? ""}
-              onChange={(e) => setNotes((prev) => ({ ...prev, [openNote.id]: e.target.value }))}
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
               placeholder="Private notes only you can see…"
               className="mt-3 min-h-[120px] w-full resize-none border-2 border-ink bg-surface p-3 text-sm focus:outline-none"
             />
             <div className="mt-3 flex justify-end">
-              <Button onClick={() => { toast.success("Note saved"); setOpenNote(null); }}
+              <Button onClick={saveNote} disabled={savingNote}
                 className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
-                Save
+                {savingNote ? "Saving…" : "Save"}
               </Button>
             </div>
           </div>

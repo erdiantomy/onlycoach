@@ -1,31 +1,101 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
-import { payouts } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Banknote, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatIdr } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/useSession";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Database } from "@/integrations/supabase/types";
 
+type PayoutAccount = Database["public"]["Tables"]["coach_payout_accounts"]["Row"];
+type Payout = Database["public"]["Tables"]["payouts"]["Row"];
 type Schedule = "weekly" | "biweekly" | "monthly";
 
 const Payouts = () => {
-  const [connected, setConnected] = useState(false);
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   const [bank, setBank] = useState({ name: "", account: "", holder: "" });
-  const [schedule, setSchedule] = useState<Schedule>("monthly");
-  const [minPayout, setMinPayout] = useState(100);
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const totalEarned = payouts.reduce((s, p) => s + p.amount, 0);
+  const { data: account } = useQuery<PayoutAccount | null>({
+    queryKey: ["payout-account", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("coach_payout_accounts")
+        .select("*")
+        .eq("coach_id", user!.id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
 
-  const connect = (e: React.FormEvent) => {
+  const { data: payoutHistory = [] } = useQuery<Payout[]>({
+    queryKey: ["payouts", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payouts")
+        .select("*")
+        .eq("coach_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const scheduleMutation = useMutation({
+    mutationFn: async (schedule: Schedule) => {
+      if (!user) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("coach_payout_accounts")
+        .upsert({ coach_id: user.id, payout_schedule: schedule }, { onConflict: "coach_id" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payout-account", user?.id] });
+      toast.success("Schedule updated");
+    },
+    onError: () => toast.error("Couldn't update schedule"),
+  });
+
+  const connect = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     if (!bank.name || !bank.account || !bank.holder) {
       toast.error("Fill in your bank details");
       return;
     }
-    setConnected(true);
+    setSaving(true);
+    const { error } = await supabase.from("coach_payout_accounts").upsert({
+      coach_id: user.id,
+      bank_name: bank.name,
+      bank_account_number: bank.account,
+      bank_account_holder: bank.holder,
+    }, { onConflict: "coach_id" });
+    setSaving(false);
+    if (error) {
+      toast.error("Couldn't save payout account");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["payout-account", user?.id] });
+    setEditMode(false);
+    setBank({ name: "", account: "", holder: "" });
     toast.success("Payout account connected");
   };
+
+  const totalEarned = payoutHistory.reduce((s, p) => s + p.amount_cents, 0);
+  const pendingAmount = payoutHistory
+    .filter((p) => p.status === "pending" || p.status === "processing")
+    .reduce((s, p) => s + p.amount_cents, 0);
+
+  const connected = !!account?.bank_account_number && !editMode;
+  const currentSchedule = (account?.payout_schedule ?? "monthly") as Schedule;
 
   return (
     <AppShell>
@@ -43,15 +113,15 @@ const Payouts = () => {
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Lifetime earned</div>
-            <div className="mt-2 font-display text-xl">{formatIdr(totalEarned)}</div>
+            <div className="mt-2 font-display text-xl">{formatIdr(totalEarned / 100)}</div>
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Pending</div>
-            <div className="mt-2 font-display text-xl">{formatIdr(240)}</div>
+            <div className="mt-2 font-display text-xl">{formatIdr(pendingAmount / 100)}</div>
           </div>
           <div className="brutal-card-sm p-4">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Next payout</div>
-            <div className="mt-2 font-display text-2xl">May 01</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Schedule</div>
+            <div className="mt-2 font-display text-2xl capitalize">{currentSchedule}</div>
           </div>
         </section>
 
@@ -61,11 +131,11 @@ const Payouts = () => {
             <div className="mt-4 flex items-center gap-3 border-2 border-ink bg-primary/10 p-4">
               <CheckCircle2 className="h-6 w-6 text-primary" />
               <div>
-                <div className="font-semibold">{bank.name} · ••••{bank.account.slice(-4)}</div>
-                <div className="text-xs text-muted-foreground">{bank.holder}</div>
+                <div className="font-semibold">{account.bank_name} · ••••{account.bank_account_number?.slice(-4)}</div>
+                <div className="text-xs text-muted-foreground">{account.bank_account_holder}</div>
               </div>
-              <Button onClick={() => setConnected(false)} variant="outline"
-                className="ml-auto border-2 border-ink bg-surface">Edit</Button>
+              <Button onClick={() => { setEditMode(true); setBank({ name: account.bank_name ?? "", account: account.bank_account_number ?? "", holder: account.bank_account_holder ?? "" }); }}
+                variant="outline" className="ml-auto border-2 border-ink bg-surface">Edit</Button>
             </div>
           ) : (
             <form onSubmit={connect} className="mt-4 space-y-3">
@@ -80,10 +150,16 @@ const Payouts = () => {
                   placeholder="Account holder name"
                   className="border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none" />
               </div>
-              <Button type="submit"
-                className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
-                Connect account
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={saving}
+                  className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
+                  {saving ? "Saving…" : "Connect account"}
+                </Button>
+                {editMode && (
+                  <Button type="button" variant="outline" onClick={() => setEditMode(false)}
+                    className="border-2 border-ink bg-surface">Cancel</Button>
+                )}
+              </div>
             </form>
           )}
         </section>
@@ -92,25 +168,17 @@ const Payouts = () => {
           <h2 className="font-display text-xl">Schedule</h2>
           <div className="mt-3 flex gap-1">
             {(["weekly", "biweekly", "monthly"] as Schedule[]).map((s) => (
-              <button key={s} onClick={() => { setSchedule(s); toast.success(`Switched to ${s} payouts`); }} className={cn(
+              <button key={s} onClick={() => scheduleMutation.mutate(s)} className={cn(
                 "border-2 border-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide",
-                schedule === s ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
+                currentSchedule === s ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/50",
               )}>{s}</button>
             ))}
-          </div>
-          <div className="mt-4">
-            <label className="text-xs uppercase tracking-wide text-muted-foreground">
-              Minimum payout (IDR ‘000)
-            </label>
-            <input type="number" min={100} step={50} value={minPayout} onChange={(e) => setMinPayout(Number(e.target.value))}
-              className="mt-1 w-32 border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none" />
-            <p className="mt-1 text-xs text-muted-foreground">Currently {formatIdr(minPayout)}</p>
           </div>
         </section>
 
         <section className="mt-8">
           <h2 className="font-display text-xl">Payout history</h2>
-          {payouts.length === 0 ? (
+          {payoutHistory.length === 0 ? (
             <div className="brutal-card mt-4 p-10 text-center">
               <p className="font-display text-xl">No payouts yet.</p>
               <p className="mt-2 text-sm text-muted-foreground">Earn first, get paid second.</p>
@@ -126,10 +194,10 @@ const Payouts = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {payouts.map((p) => (
+                  {payoutHistory.map((p) => (
                     <tr key={p.id} className="border-b-2 border-ink/10 last:border-0">
-                      <td className="px-4 py-3">{p.date}</td>
-                      <td className="px-4 py-3 font-semibold">{formatIdr(p.amount)}</td>
+                      <td className="px-4 py-3">{new Date(p.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 font-semibold">{formatIdr(p.amount_cents / 100)}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1 text-xs uppercase tracking-wide">
                           {p.status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : <Clock className="h-3.5 w-3.5" />}

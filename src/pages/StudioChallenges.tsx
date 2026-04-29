@@ -1,22 +1,29 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
-import { challenges as seedChallenges, coaches, type Challenge, type ChallengeLesson } from "@/lib/mock";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Trash2, Trophy, X } from "lucide-react";
 import { cn, formatIdr } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/useSession";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Database } from "@/integrations/supabase/types";
+
+type Challenge = Database["public"]["Tables"]["challenges"]["Row"];
+type LessonType = Database["public"]["Enums"]["challenge_lesson_type"];
 
 interface DraftLesson {
   day: number;
   title: string;
-  type: ChallengeLesson["type"];
+  type: LessonType;
 }
 
 const StudioChallenges = () => {
-  const me = coaches[0];
-  const [items, setItems] = useState<Challenge[]>(() => seedChallenges.filter((c) => c.coachId === me.id));
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [draft, setDraft] = useState({
     title: "",
     description: "",
@@ -28,6 +35,32 @@ const StudioChallenges = () => {
     { day: 1, title: "", type: "text" },
   ]);
 
+  const { data: items = [], isLoading } = useQuery<Challenge[]>({
+    queryKey: ["studio-challenges", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("challenges")
+        .select("*")
+        .eq("coach_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("challenges").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["studio-challenges", user?.id] });
+      toast.success("Challenge deleted");
+    },
+    onError: () => toast.error("Couldn't delete challenge"),
+  });
+
   const addLesson = () => {
     setLessons((prev) => [...prev, { day: prev.length + 1, title: "", type: "text" }]);
   };
@@ -36,7 +69,8 @@ const StudioChallenges = () => {
     setLessons((prev) => prev.filter((l) => l.day !== day).map((l, i) => ({ ...l, day: i + 1 })));
   };
 
-  const publish = () => {
+  const publish = async () => {
+    if (!user) return;
     if (!draft.title.trim() || !draft.description.trim()) {
       toast.error("Add a title and description");
       return;
@@ -45,30 +79,62 @@ const StudioChallenges = () => {
       toast.error("Each lesson needs a title");
       return;
     }
-    const next: Challenge = {
-      id: `ch_${Date.now()}`,
-      coachId: me.id,
-      title: draft.title.trim(),
-      description: draft.description.trim(),
-      price: draft.price,
-      durationDays: draft.durationDays,
-      enrolled: 0,
-      maxParticipants: draft.maxParticipants,
-      startsIn: "Draft",
-      status: "open",
-      curriculum: lessons.map((l) => ({ day: l.day, title: l.title.trim(), type: l.type })),
-    };
-    setItems((prev) => [next, ...prev]);
+    setPublishing(true);
+    // Insert challenge
+    const { data: newChallenge, error: challengeErr } = await supabase
+      .from("challenges")
+      .insert({
+        coach_id: user.id,
+        title: draft.title.trim(),
+        description: draft.description.trim(),
+        price_cents: Math.round(draft.price * 1000),
+        duration_days: draft.durationDays,
+        max_participants: draft.maxParticipants,
+        status: "open",
+      })
+      .select()
+      .single();
+
+    if (challengeErr || !newChallenge) {
+      setPublishing(false);
+      toast.error("Couldn't publish challenge");
+      return;
+    }
+
+    // Insert curriculum
+    const curriculumRows = lessons.map((l) => ({
+      challenge_id: newChallenge.id,
+      day_number: l.day,
+      title: l.title.trim(),
+      lesson_type: l.type,
+      sort_order: l.day,
+    }));
+    const { error: currErr } = await supabase.from("challenge_curriculum").insert(curriculumRows);
+    setPublishing(false);
+    if (currErr) {
+      toast.error("Challenge created but curriculum failed — check DB");
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["studio-challenges", user.id] });
     toast.success("Challenge published");
     setOpen(false);
     setDraft({ title: "", description: "", price: 99, durationDays: 14, maxParticipants: 100 });
     setLessons([{ day: 1, title: "", type: "text" }]);
   };
 
-  const remove = (id: string) => {
-    setItems((prev) => prev.filter((c) => c.id !== id));
-    toast.success("Challenge deleted");
-  };
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 bg-surface border-2 border-ink" />
+            <div className="h-24 w-full bg-surface border-2 border-ink" />
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -104,17 +170,18 @@ const StudioChallenges = () => {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{c.description}</p>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs uppercase tracking-wide text-muted-foreground">
-                    <span>{c.durationDays}d</span>
-                    <span>{c.enrolled}/{c.maxParticipants} enrolled</span>
-                    <span>{formatIdr(c.price)}</span>
+                    <span>{c.duration_days}d</span>
+                    <span>{c.max_participants ?? "∞"} max</span>
+                    <span>{formatIdr(c.price_cents / 1000)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button asChild variant="outline" className="border-2 border-ink bg-surface">
                     <Link to={`/challenges/${c.id}`}>View</Link>
                   </Button>
-                  <button onClick={() => remove(c.id)}
-                    className="border-2 border-ink bg-destructive/10 px-3 text-destructive hover:bg-destructive/20">
+                  <button onClick={() => deleteMutation.mutate(c.id)}
+                    disabled={deleteMutation.isPending}
+                    className="border-2 border-ink bg-destructive/10 px-3 text-destructive hover:bg-destructive/20 disabled:opacity-50">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -146,7 +213,7 @@ const StudioChallenges = () => {
                   className="min-h-[80px] w-full resize-none border-2 border-ink bg-surface p-3 text-sm focus:outline-none" />
               </Field>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Price">
+                <Field label="Price (USD)">
                   <input type="number" min={0} value={draft.price}
                     onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
                     className="w-full border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none" />
@@ -181,7 +248,7 @@ const StudioChallenges = () => {
                         placeholder="Lesson title"
                         className="flex-1 border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none" />
                       <select value={l.type} onChange={(e) => setLessons((prev) =>
-                          prev.map((x) => x.day === l.day ? { ...x, type: e.target.value as DraftLesson["type"] } : x))}
+                          prev.map((x) => x.day === l.day ? { ...x, type: e.target.value as LessonType } : x))}
                         className="border-2 border-ink bg-surface px-2 py-2 text-xs focus:outline-none">
                         <option value="text">text</option>
                         <option value="video">video</option>
@@ -203,9 +270,9 @@ const StudioChallenges = () => {
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)}
                 className="border-2 border-ink bg-surface">Cancel</Button>
-              <Button onClick={publish}
+              <Button onClick={publish} disabled={publishing}
                 className={cn("border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90")}>
-                Publish
+                {publishing ? "Publishing…" : "Publish"}
               </Button>
             </div>
           </div>
