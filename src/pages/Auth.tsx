@@ -118,6 +118,14 @@ const Auth = () => {
     if (error) toast.error(error.message);
   };
 
+  const apple = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: callbackUrl },
+    });
+    if (error) toast.error(error.message);
+  };
+
   const reset = async () => {
     if (!email) return toast.error("Enter your email first");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -248,10 +256,16 @@ const Auth = () => {
             <div className="h-px flex-1 bg-ink" /> or <div className="h-px flex-1 bg-ink" />
           </div>
 
-          <button onClick={google}
-            className="w-full border-2 border-ink bg-surface py-2.5 text-sm font-semibold uppercase tracking-wide">
-            Continue with Google
-          </button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button onClick={google}
+              className="w-full border-2 border-ink bg-surface py-2.5 text-sm font-semibold uppercase tracking-wide hover:bg-accent/30">
+              Continue with Google
+            </button>
+            <button onClick={apple}
+              className="w-full border-2 border-ink bg-surface py-2.5 text-sm font-semibold uppercase tracking-wide hover:bg-accent/30">
+              Continue with Apple
+            </button>
+          </div>
 
           <p className="mt-5 text-center text-xs text-muted-foreground">
             By continuing you agree to our <Link className="underline" to="/terms">Terms</Link> and <Link className="underline" to="/privacy">Privacy</Link>.
