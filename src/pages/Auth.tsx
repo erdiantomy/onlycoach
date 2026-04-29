@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Logo } from "@/components/brand/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -49,12 +50,16 @@ const Auth = () => {
     }
   };
 
-  const google = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/feed` },
+  const oauth = async (provider: "google" | "apple") => {
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin,
     });
-    if (error) toast.error(error.message);
+    if (result.error) {
+      toast.error(result.error.message ?? "Sign-in failed");
+      return;
+    }
+    if (result.redirected) return;
+    navigate("/feed", { replace: true });
   };
 
   const reset = async () => {
@@ -117,10 +122,16 @@ const Auth = () => {
             <div className="h-px flex-1 bg-ink" /> or <div className="h-px flex-1 bg-ink" />
           </div>
 
-          <button onClick={google}
-            className="w-full border-2 border-ink bg-surface py-2.5 text-sm font-semibold uppercase tracking-wide">
-            Continue with Google
-          </button>
+          <div className="space-y-2">
+            <button onClick={() => oauth("google")}
+              className="w-full border-2 border-ink bg-surface py-2.5 text-sm font-semibold uppercase tracking-wide">
+              Continue with Google
+            </button>
+            <button onClick={() => oauth("apple")}
+              className="w-full border-2 border-ink bg-ink py-2.5 text-sm font-semibold uppercase tracking-wide text-ink-foreground">
+              Continue with Apple
+            </button>
+          </div>
 
           <p className="mt-5 text-center text-xs text-muted-foreground">
             By continuing you agree to our <Link className="underline" to="/terms">Terms</Link> and <Link className="underline" to="/privacy">Privacy</Link>.
