@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
+import { ConnectedAccounts } from "@/components/auth/ConnectedAccounts";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +24,11 @@ const Settings = () => {
           </div>
         </section>
 
+        <ConnectedAccounts />
+
         {[
           { title: "Profile", body: "Display name, avatar, bio." },
-          { title: "Account", body: "Email, password, connected accounts." },
+          { title: "Account", body: "Email and password." },
           { title: "Billing", body: "Payment methods, active subscriptions, invoices." },
           { title: "Payouts", body: "Coach payout settings." },
           { title: "Notifications", body: "Email + push notification preferences." },
