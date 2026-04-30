@@ -85,6 +85,33 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          badge_type: string
+          earned_at: string
+          icon: string | null
+          id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          label?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           coach_id: string
@@ -149,6 +176,7 @@ export type Database = {
           day_number: number
           id: string
           lesson_type: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order: number
           title: string
         }
         Insert: {
@@ -158,6 +186,7 @@ export type Database = {
           day_number: number
           id?: string
           lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order?: number
           title: string
         }
         Update: {
@@ -167,6 +196,7 @@ export type Database = {
           day_number?: number
           id?: string
           lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order?: number
           title?: string
         }
         Relationships: [
@@ -184,19 +214,19 @@ export type Database = {
           challenge_id: string
           id: string
           joined_at: string
-          user_id: string
+          mentee_id: string
         }
         Insert: {
           challenge_id: string
           id?: string
           joined_at?: string
-          user_id: string
+          mentee_id: string
         }
         Update: {
           challenge_id?: string
           id?: string
           joined_at?: string
-          user_id?: string
+          mentee_id?: string
         }
         Relationships: [
           {
@@ -322,30 +352,39 @@ export type Database = {
         Row: {
           account_name: string | null
           account_number: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
           bank_name: string | null
           coach_id: string
           created_at: string
           id: string
+          payout_schedule: string
           provider: string
           updated_at: string
         }
         Insert: {
           account_name?: string | null
           account_number?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
           bank_name?: string | null
           coach_id: string
           created_at?: string
           id?: string
+          payout_schedule?: string
           provider?: string
           updated_at?: string
         }
         Update: {
           account_name?: string | null
           account_number?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
           bank_name?: string | null
           coach_id?: string
           created_at?: string
           id?: string
+          payout_schedule?: string
           provider?: string
           updated_at?: string
         }
@@ -383,7 +422,7 @@ export type Database = {
       }
       community_posts: {
         Row: {
-          author_id: string
+          author_id: string | null
           body: string
           coach_id: string | null
           created_at: string
@@ -392,7 +431,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           body: string
           coach_id?: string | null
           created_at?: string
@@ -401,7 +440,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           body?: string
           coach_id?: string | null
           created_at?: string
@@ -623,6 +662,7 @@ export type Database = {
         Row: {
           amount_cents: number
           coach_id: string
+          created_at: string
           currency: string
           id: string
           notes: string | null
@@ -633,6 +673,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           coach_id: string
+          created_at?: string
           currency?: string
           id?: string
           notes?: string | null
@@ -643,6 +684,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           coach_id?: string
+          created_at?: string
           currency?: string
           id?: string
           notes?: string | null
@@ -827,18 +869,21 @@ export type Database = {
           created_at: string
           id: string
           profile_id: string
+          referrer: string | null
           viewer_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           profile_id: string
+          referrer?: string | null
           viewer_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           profile_id?: string
+          referrer?: string | null
           viewer_id?: string | null
         }
         Relationships: []
@@ -886,6 +931,7 @@ export type Database = {
           created_at: string
           id: string
           mentee_id: string
+          note: string | null
           updated_at: string
         }
         Insert: {
@@ -894,6 +940,7 @@ export type Database = {
           created_at?: string
           id?: string
           mentee_id: string
+          note?: string | null
           updated_at?: string
         }
         Update: {
@@ -902,6 +949,7 @@ export type Database = {
           created_at?: string
           id?: string
           mentee_id?: string
+          note?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1123,7 +1171,7 @@ export type Database = {
       app_role: "admin" | "coach" | "mentee"
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
       challenge_lesson_type: "text" | "video" | "quiz" | "task"
-      challenge_status: "draft" | "open" | "active" | "closed"
+      challenge_status: "draft" | "open" | "active" | "closed" | "completed"
       media_type: "text" | "image" | "video" | "pdf"
       niche:
         | "Strength"
@@ -1270,7 +1318,7 @@ export const Constants = {
       app_role: ["admin", "coach", "mentee"],
       booking_status: ["pending", "confirmed", "completed", "cancelled"],
       challenge_lesson_type: ["text", "video", "quiz", "task"],
-      challenge_status: ["draft", "open", "active", "closed"],
+      challenge_status: ["draft", "open", "active", "closed", "completed"],
       media_type: ["text", "image", "video", "pdf"],
       niche: [
         "Strength",
