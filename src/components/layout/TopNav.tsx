@@ -39,6 +39,7 @@ export const TopNav = () => {
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
+      .in("role", ["coach", "admin"])
       .then(({ data }) => {
         const roles = (data ?? []).map((r) => r.role);
         setIsCoach(roles.includes("coach"));
