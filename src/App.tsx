@@ -88,6 +88,16 @@ const App = () => (
           <Route path="/studio/referrals" element={<RequireAuth><Referrals /></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
 
+          <Route path="/admin" element={<RequireAdmin><AdminOverview /></RequireAdmin>} />
+          <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
+          <Route path="/admin/coaches" element={<RequireAdmin><AdminCoaches /></RequireAdmin>} />
+          <Route path="/admin/subscriptions" element={<RequireAdmin><AdminSubscriptions /></RequireAdmin>} />
+          <Route path="/admin/payouts" element={<RequireAdmin><AdminPayouts /></RequireAdmin>} />
+          <Route path="/admin/content" element={<RequireAdmin><AdminContent /></RequireAdmin>} />
+          <Route path="/admin/emails" element={<RequireAdmin><AdminEmails /></RequireAdmin>} />
+          <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
+          <Route path="/admin/system" element={<RequireAdmin><AdminSystem /></RequireAdmin>} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
