@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, LogOut, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Shield, User } from "lucide-react";
 
 const links = [
   { to: "/discover", label: "Discover" },
@@ -20,11 +20,13 @@ export const TopNav = () => {
   const { user, signOut } = useSession();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [isCoach, setIsCoach] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setDisplayName(null);
       setIsCoach(false);
+      setIsAdmin(false);
       return;
     }
     supabase
@@ -37,9 +39,11 @@ export const TopNav = () => {
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "coach")
-      .maybeSingle()
-      .then(({ data }) => setIsCoach(!!data));
+      .then(({ data }) => {
+        const roles = (data ?? []).map((r) => r.role);
+        setIsCoach(roles.includes("coach"));
+        setIsAdmin(roles.includes("admin"));
+      });
   }, [user]);
 
   return (
@@ -78,6 +82,18 @@ export const TopNav = () => {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              {isAdmin && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden border-2 border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 sm:inline-flex"
+                >
+                  <Link to="/admin">
+                    <Shield className="mr-1.5 h-3.5 w-3.5" /> Admin
+                  </Link>
+                </Button>
+              )}
               {isCoach && (
                 <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                   <Link to="/studio">
