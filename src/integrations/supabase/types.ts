@@ -141,6 +141,44 @@ export type Database = {
           },
         ]
       }
+      challenge_curriculum: {
+        Row: {
+          body: string | null
+          challenge_id: string
+          created_at: string
+          day_number: number
+          id: string
+          lesson_type: Database["public"]["Enums"]["challenge_lesson_type"]
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          challenge_id: string
+          created_at?: string
+          day_number: number
+          id?: string
+          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          title: string
+        }
+        Update: {
+          body?: string | null
+          challenge_id?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_curriculum_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_enrollments: {
         Row: {
           challenge_id: string
@@ -175,10 +213,14 @@ export type Database = {
           coach_id: string
           created_at: string
           description: string | null
+          duration_days: number
           ends_at: string | null
           id: string
           is_published: boolean
+          max_participants: number | null
+          price_cents: number
           starts_at: string | null
+          status: Database["public"]["Enums"]["challenge_status"]
           title: string
           updated_at: string
         }
@@ -186,10 +228,14 @@ export type Database = {
           coach_id: string
           created_at?: string
           description?: string | null
+          duration_days?: number
           ends_at?: string | null
           id?: string
           is_published?: boolean
+          max_participants?: number | null
+          price_cents?: number
           starts_at?: string | null
+          status?: Database["public"]["Enums"]["challenge_status"]
           title: string
           updated_at?: string
         }
@@ -197,14 +243,26 @@ export type Database = {
           coach_id?: string
           created_at?: string
           description?: string | null
+          duration_days?: number
           ends_at?: string | null
           id?: string
           is_published?: boolean
+          max_participants?: number | null
+          price_cents?: number
           starts_at?: string | null
+          status?: Database["public"]["Enums"]["challenge_status"]
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "challenges_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coach_billing: {
         Row: {
@@ -226,28 +284,37 @@ export type Database = {
       }
       coach_daily_stats: {
         Row: {
+          churned_subscribers: number
           coach_id: string
+          content_views: number
           day: string
           id: string
           new_posts: number
           new_subscribers: number
           revenue_cents: number
+          stat_date: string
         }
         Insert: {
+          churned_subscribers?: number
           coach_id: string
+          content_views?: number
           day: string
           id?: string
           new_posts?: number
           new_subscribers?: number
           revenue_cents?: number
+          stat_date?: string
         }
         Update: {
+          churned_subscribers?: number
           coach_id?: string
+          content_views?: number
           day?: string
           id?: string
           new_posts?: number
           new_subscribers?: number
           revenue_cents?: number
+          stat_date?: string
         }
         Relationships: []
       }
@@ -321,6 +388,8 @@ export type Database = {
           coach_id: string | null
           created_at: string
           id: string
+          is_announcement: boolean
+          user_id: string
         }
         Insert: {
           author_id: string
@@ -328,6 +397,8 @@ export type Database = {
           coach_id?: string | null
           created_at?: string
           id?: string
+          is_announcement?: boolean
+          user_id: string
         }
         Update: {
           author_id?: string
@@ -335,8 +406,18 @@ export type Database = {
           coach_id?: string | null
           created_at?: string
           id?: string
+          is_announcement?: boolean
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
@@ -449,12 +530,32 @@ export type Database = {
         }
         Relationships: []
       }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: []
+      }
       mentee_profiles: {
         Row: {
           created_at: string
           goals: string | null
           interests: string[]
+          is_public: boolean
           location: string | null
+          show_subscriptions: boolean
           updated_at: string
           user_id: string
         }
@@ -462,7 +563,9 @@ export type Database = {
           created_at?: string
           goals?: string | null
           interests?: string[]
+          is_public?: boolean
           location?: string | null
+          show_subscriptions?: boolean
           updated_at?: string
           user_id: string
         }
@@ -470,7 +573,9 @@ export type Database = {
           created_at?: string
           goals?: string | null
           interests?: string[]
+          is_public?: boolean
           location?: string | null
+          show_subscriptions?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -1017,6 +1122,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "coach" | "mentee"
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
+      challenge_lesson_type: "text" | "video" | "quiz" | "task"
+      challenge_status: "draft" | "open" | "active" | "closed"
       media_type: "text" | "image" | "video" | "pdf"
       niche:
         | "Strength"
@@ -1162,6 +1269,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "coach", "mentee"],
       booking_status: ["pending", "confirmed", "completed", "cancelled"],
+      challenge_lesson_type: ["text", "video", "quiz", "task"],
+      challenge_status: ["draft", "open", "active", "closed"],
       media_type: ["text", "image", "video", "pdf"],
       niche: [
         "Strength",
