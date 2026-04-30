@@ -1,122 +1,99 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminShell } from "./AdminShell";
-import { cn } from "@/lib/utils";
+import AdminShell from "./AdminShell";
+import { Input } from "@/components/ui/input";
+import { ExternalLink } from "lucide-react";
 
-interface CoachRow {
-  id: string;
+interface Row {
+  user_id: string;
+  niche: string;
+  subscriber_count: number;
+  is_published: boolean;
+  created_at: string;
   display_name: string;
   handle: string;
   avatar_url: string | null;
   headline: string | null;
-  niche: string | null;
-  subscriber_count: number;
-  is_published: boolean;
-  created_at: string;
 }
 
-const AdminCoaches = () => {
-  const [search, setSearch] = useState("");
-
-  const { data: coaches = [], isLoading } = useQuery<CoachRow[]>({
+export default function AdminCoaches() {
+  const [q, setQ] = useState("");
+  const { data: rows = [] } = useQuery<Row[]>({
     queryKey: ["admin-coaches"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: cps } = await supabase
         .from("coach_profiles")
-        .select("user_id, niche, subscriber_count, is_published, created_at, profiles(id, display_name, handle, avatar_url, headline)")
+        .select("user_id, niche, subscriber_count, is_published, created_at")
         .order("subscriber_count", { ascending: false })
         .limit(500);
-      if (!data) return [];
-      return data.map((c) => {
-        const p = c.profiles as unknown as { id: string; display_name: string; handle: string; avatar_url: string | null; headline: string | null } | null;
-        return {
-          id: c.user_id,
-          display_name: p?.display_name ?? "Unknown",
-          handle: p?.handle ?? "",
-          avatar_url: p?.avatar_url ?? null,
-          headline: p?.headline ?? null,
-          niche: c.niche,
-          subscriber_count: c.subscriber_count ?? 0,
-          is_published: c.is_published,
-          created_at: c.created_at,
-        };
-      });
+      const ids = (cps ?? []).map((c) => c.user_id);
+      if (!ids.length) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, display_name, handle, avatar_url, headline")
+        .in("id", ids);
+      const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
+      return (cps ?? []).map((c) => ({
+        ...c,
+        ...(pMap.get(c.user_id) ?? { display_name: "—", handle: "—", avatar_url: null, headline: null }),
+      })) as Row[];
     },
   });
 
-  const filtered = coaches.filter(
-    (c) =>
-      c.display_name.toLowerCase().includes(search.toLowerCase()) ||
-      c.handle.toLowerCase().includes(search.toLowerCase()) ||
-      (c.niche ?? "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return rows;
+    return rows.filter((r) => r.display_name?.toLowerCase().includes(s) || r.handle?.toLowerCase().includes(s));
+  }, [rows, q]);
 
   return (
-    <AdminShell>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-2xl">All Coaches ({coaches.length})</h2>
-        <input
-          className="brutal-input w-full sm:w-64"
-          placeholder="Search name, handle, niche…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {isLoading ? (
-        <div className="brutal-card-sm p-8 text-center text-sm">Loading…</div>
-      ) : (
-        <div className="overflow-x-auto border-2 border-ink">
-          <table className="w-full text-sm">
-            <thead className="bg-ink text-ink-foreground text-xs uppercase tracking-wide">
-              <tr>
-                <th className="px-3 py-2 text-left">Coach</th>
-                <th className="px-3 py-2 text-left">Niche</th>
-                <th className="px-3 py-2 text-left">Subscribers</th>
-                <th className="px-3 py-2 text-left">Status</th>
-                <th className="px-3 py-2 text-left">Joined</th>
-                <th className="px-3 py-2 text-left"></th>
+    <AdminShell title="Coaches" subtitle={`${rows.length} coaches`}>
+      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search coaches…" className="mb-4 max-w-md border-2 border-ink" />
+      <div className="overflow-x-auto border-2 border-ink">
+        <table className="w-full text-sm">
+          <thead className="bg-ink text-ink-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">Coach</th>
+              <th className="px-3 py-2 text-left">Headline</th>
+              <th className="px-3 py-2 text-left">Niche</th>
+              <th className="px-3 py-2 text-left">Subs</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r, i) => (
+              <tr key={r.user_id} className={`border-t-2 border-ink/20 ${i % 2 ? "bg-background" : "bg-surface"}`}>
+                <td className="flex items-center gap-2 px-3 py-2">
+                  {r.avatar_url && <img src={r.avatar_url} alt="" className="h-7 w-7 border-2 border-ink object-cover" />}
+                  <div>
+                    <div className="font-medium">{r.display_name}</div>
+                    <div className="text-xs text-muted-foreground">@{r.handle}</div>
+                  </div>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">{r.headline ?? "—"}</td>
+                <td className="px-3 py-2">{r.niche}</td>
+                <td className="px-3 py-2">{r.subscriber_count}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${
+                      r.is_published ? "bg-green-200 text-green-900" : "bg-yellow-200 text-yellow-900"
+                    }`}
+                  >
+                    {r.is_published ? "Published" : "Draft"}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  <a href={`/coach/${r.handle}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">
+                    Open <ExternalLink className="h-3 w-3" />
+                  </a>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c, i) => (
-                <tr key={c.id} className={cn("border-t border-ink/30", i % 2 === 0 ? "bg-surface" : "bg-background")}>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 shrink-0 border border-ink bg-accent overflow-hidden">
-                        {c.avatar_url && <img src={c.avatar_url} className="h-full w-full object-cover" alt="" />}
-                      </div>
-                      <div>
-                        <p className="font-medium leading-tight">{c.display_name}</p>
-                        {c.headline && <p className="text-xs text-muted-foreground">{c.headline}</p>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">{c.niche ?? "—"}</td>
-                  <td className="px-3 py-2 font-semibold">{c.subscriber_count.toLocaleString()}</td>
-                  <td className="px-3 py-2">
-                    <span className={cn("brutal-tag text-[10px]", c.is_published ? "" : "opacity-50")}>
-                      {c.is_published ? "Published" : "Draft"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link to={`/coach/${c.handle}`} className="brutal-tag text-xs" target="_blank">
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </AdminShell>
   );
-};
-
-export default AdminCoaches;
+}

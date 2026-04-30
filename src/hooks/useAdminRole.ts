@@ -4,7 +4,6 @@ import { useSession } from "@/hooks/useSession";
 
 export function useAdminRole() {
   const { user, loading: sessionLoading } = useSession();
-
   const { data: isAdmin = false, isLoading } = useQuery<boolean>({
     queryKey: ["admin-role", user?.id],
     enabled: !!user?.id,
@@ -19,6 +18,5 @@ export function useAdminRole() {
     },
     staleTime: 60_000,
   });
-
   return { isAdmin, loading: sessionLoading || isLoading };
 }

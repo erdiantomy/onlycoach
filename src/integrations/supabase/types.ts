@@ -16,33 +16,41 @@ export type Database = {
     Tables: {
       admin_audit_log: {
         Row: {
-          id: string
-          admin_id: string | null
           action: string
-          target_table: string | null
-          target_id: string | null
-          payload: Record<string, unknown> | null
+          admin_id: string | null
           created_at: string
+          id: string
+          payload: Json | null
+          target_id: string | null
+          target_table: string | null
         }
         Insert: {
-          id?: string
-          admin_id?: string | null
           action: string
-          target_table?: string | null
-          target_id?: string | null
-          payload?: Record<string, unknown> | null
+          admin_id?: string | null
           created_at?: string
+          id?: string
+          payload?: Json | null
+          target_id?: string | null
+          target_table?: string | null
         }
         Update: {
-          id?: string
-          admin_id?: string | null
           action?: string
-          target_table?: string | null
-          target_id?: string | null
-          payload?: Record<string, unknown> | null
+          admin_id?: string | null
           created_at?: string
+          id?: string
+          payload?: Json | null
+          target_id?: string | null
+          target_table?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       availability_slots: {
         Row: {
@@ -74,6 +82,33 @@ export type Database = {
           is_booked?: boolean
           price_cents?: number
           starts_at?: string
+        }
+        Relationships: []
+      }
+      badges: {
+        Row: {
+          badge_type: string
+          earned_at: string
+          icon: string | null
+          id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          label?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -133,6 +168,132 @@ export type Database = {
           },
         ]
       }
+      challenge_curriculum: {
+        Row: {
+          body: string | null
+          challenge_id: string
+          created_at: string
+          day_number: number
+          id: string
+          lesson_type: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          challenge_id: string
+          created_at?: string
+          day_number: number
+          id?: string
+          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          body?: string | null
+          challenge_id?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_curriculum_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_enrollments: {
+        Row: {
+          challenge_id: string
+          id: string
+          joined_at: string
+          mentee_id: string
+        }
+        Insert: {
+          challenge_id: string
+          id?: string
+          joined_at?: string
+          mentee_id: string
+        }
+        Update: {
+          challenge_id?: string
+          id?: string
+          joined_at?: string
+          mentee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_enrollments_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          coach_id: string
+          created_at: string
+          description: string | null
+          duration_days: number
+          ends_at: string | null
+          id: string
+          is_published: boolean
+          max_participants: number | null
+          price_cents: number
+          starts_at: string | null
+          status: Database["public"]["Enums"]["challenge_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          coach_id: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          is_published?: boolean
+          max_participants?: number | null
+          price_cents?: number
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["challenge_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          coach_id?: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          is_published?: boolean
+          max_participants?: number | null
+          price_cents?: number
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["challenge_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coach_billing: {
         Row: {
           stripe_account_id: string | null
@@ -148,6 +309,84 @@ export type Database = {
           stripe_account_id?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      coach_daily_stats: {
+        Row: {
+          churned_subscribers: number
+          coach_id: string
+          content_views: number
+          day: string
+          id: string
+          new_posts: number
+          new_subscribers: number
+          revenue_cents: number
+          stat_date: string
+        }
+        Insert: {
+          churned_subscribers?: number
+          coach_id: string
+          content_views?: number
+          day: string
+          id?: string
+          new_posts?: number
+          new_subscribers?: number
+          revenue_cents?: number
+          stat_date?: string
+        }
+        Update: {
+          churned_subscribers?: number
+          coach_id?: string
+          content_views?: number
+          day?: string
+          id?: string
+          new_posts?: number
+          new_subscribers?: number
+          revenue_cents?: number
+          stat_date?: string
+        }
+        Relationships: []
+      }
+      coach_payout_accounts: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          coach_id: string
+          created_at: string
+          id: string
+          payout_schedule: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          coach_id: string
+          created_at?: string
+          id?: string
+          payout_schedule?: string
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          coach_id?: string
+          created_at?: string
+          id?: string
+          payout_schedule?: string
+          provider?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -180,6 +419,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      community_posts: {
+        Row: {
+          author_id: string | null
+          body: string
+          coach_id: string | null
+          created_at: string
+          id: string
+          is_announcement: boolean
+          user_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          coach_id?: string | null
+          created_at?: string
+          id?: string
+          is_announcement?: boolean
+          user_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          coach_id?: string | null
+          created_at?: string
+          id?: string
+          is_announcement?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
@@ -292,6 +569,57 @@ export type Database = {
         }
         Relationships: []
       }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: []
+      }
+      mentee_profiles: {
+        Row: {
+          created_at: string
+          goals: string | null
+          interests: string[]
+          is_public: boolean
+          location: string | null
+          show_subscriptions: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goals?: string | null
+          interests?: string[]
+          is_public?: boolean
+          location?: string | null
+          show_subscriptions?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goals?: string | null
+          interests?: string[]
+          is_public?: boolean
+          location?: string | null
+          show_subscriptions?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachment_path: string | null
@@ -329,6 +657,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payouts: {
+        Row: {
+          amount_cents: number
+          coach_id: string
+          created_at: string
+          currency: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          requested_at: string
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          coach_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          coach_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Relationships: []
       }
       post_comments: {
         Row: {
@@ -439,9 +803,11 @@ export type Database = {
           comment_count: number
           created_at: string
           id: string
+          is_locked: boolean
           like_count: number
           media_type: Database["public"]["Enums"]["media_type"]
           required_tier_id: string | null
+          title: string | null
         }
         Insert: {
           body: string
@@ -449,9 +815,11 @@ export type Database = {
           comment_count?: number
           created_at?: string
           id?: string
+          is_locked?: boolean
           like_count?: number
           media_type?: Database["public"]["Enums"]["media_type"]
           required_tier_id?: string | null
+          title?: string | null
         }
         Update: {
           body?: string
@@ -459,9 +827,11 @@ export type Database = {
           comment_count?: number
           created_at?: string
           id?: string
+          is_locked?: boolean
           like_count?: number
           media_type?: Database["public"]["Enums"]["media_type"]
           required_tier_id?: string | null
+          title?: string | null
         }
         Relationships: [
           {
@@ -491,6 +861,30 @@ export type Database = {
           id?: string
           processed_at?: string
           provider?: string
+        }
+        Relationships: []
+      }
+      profile_views: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          referrer: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          referrer?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          referrer?: string | null
+          viewer_id?: string | null
         }
         Relationships: []
       }
@@ -530,102 +924,57 @@ export type Database = {
         }
         Relationships: []
       }
-      mentee_profiles: {
+      subscriber_notes: {
         Row: {
-          user_id: string
-          interests: string[]
-          is_public: boolean
-          show_subscriptions: boolean
+          body: string | null
+          coach_id: string
           created_at: string
+          id: string
+          mentee_id: string
+          note: string | null
           updated_at: string
         }
         Insert: {
-          user_id: string
-          interests?: string[]
-          is_public?: boolean
-          show_subscriptions?: boolean
+          body?: string | null
+          coach_id: string
           created_at?: string
+          id?: string
+          mentee_id: string
+          note?: string | null
           updated_at?: string
         }
         Update: {
-          user_id?: string
-          interests?: string[]
-          is_public?: boolean
-          show_subscriptions?: boolean
+          body?: string | null
+          coach_id?: string
           created_at?: string
+          id?: string
+          mentee_id?: string
+          note?: string | null
           updated_at?: string
         }
         Relationships: []
       }
-      follows: {
+      subscriber_tags: {
         Row: {
-          follower_id: string
-          following_id: string
+          coach_id: string
           created_at: string
-        }
-        Insert: {
-          follower_id: string
-          following_id: string
-          created_at?: string
-        }
-        Update: {
-          follower_id?: string
-          following_id?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      badges: {
-        Row: {
           id: string
-          user_id: string
-          badge_type: string
-          label: string
-          icon: string
-          metadata: Json | null
-          earned_at: string
+          mentee_id: string
+          tag: string
         }
         Insert: {
+          coach_id: string
+          created_at?: string
           id?: string
-          user_id: string
-          badge_type: string
-          label: string
-          icon?: string
-          metadata?: Json | null
-          earned_at?: string
+          mentee_id: string
+          tag: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          badge_type?: string
-          label?: string
-          icon?: string
-          metadata?: Json | null
-          earned_at?: string
-        }
-        Relationships: []
-      }
-      profile_views: {
-        Row: {
-          id: string
-          profile_id: string
-          viewer_id: string | null
-          referrer: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          profile_id: string
-          viewer_id?: string | null
-          referrer?: string | null
+          coach_id?: string
           created_at?: string
-        }
-        Update: {
           id?: string
-          profile_id?: string
-          viewer_id?: string | null
-          referrer?: string | null
-          created_at?: string
+          mentee_id?: string
+          tag?: string
         }
         Relationships: []
       }
@@ -772,322 +1121,6 @@ export type Database = {
         }
         Relationships: []
       }
-      challenges: {
-        Row: {
-          id: string
-          coach_id: string
-          title: string
-          description: string | null
-          cover_image_url: string | null
-          price_cents: number
-          duration_days: number
-          max_participants: number | null
-          enrollment_deadline: string | null
-          starts_at: string | null
-          ends_at: string | null
-          status: Database["public"]["Enums"]["challenge_status"]
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          coach_id: string
-          title: string
-          description?: string | null
-          cover_image_url?: string | null
-          price_cents: number
-          duration_days: number
-          max_participants?: number | null
-          enrollment_deadline?: string | null
-          starts_at?: string | null
-          ends_at?: string | null
-          status?: Database["public"]["Enums"]["challenge_status"]
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          coach_id?: string
-          title?: string
-          description?: string | null
-          cover_image_url?: string | null
-          price_cents?: number
-          duration_days?: number
-          max_participants?: number | null
-          enrollment_deadline?: string | null
-          starts_at?: string | null
-          ends_at?: string | null
-          status?: Database["public"]["Enums"]["challenge_status"]
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      challenge_curriculum: {
-        Row: {
-          id: string
-          challenge_id: string
-          day_number: number
-          title: string
-          body: string | null
-          media_url: string | null
-          lesson_type: Database["public"]["Enums"]["challenge_lesson_type"]
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          challenge_id: string
-          day_number: number
-          title: string
-          body?: string | null
-          media_url?: string | null
-          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          challenge_id?: string
-          day_number?: number
-          title?: string
-          body?: string | null
-          media_url?: string | null
-          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
-          sort_order?: number
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "challenge_curriculum_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "challenges"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      challenge_enrollments: {
-        Row: {
-          id: string
-          challenge_id: string
-          mentee_id: string
-          enrolled_at: string
-          payment_id: string | null
-        }
-        Insert: {
-          id?: string
-          challenge_id: string
-          mentee_id: string
-          enrolled_at?: string
-          payment_id?: string | null
-        }
-        Update: {
-          id?: string
-          challenge_id?: string
-          mentee_id?: string
-          enrolled_at?: string
-          payment_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "challenge_enrollments_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "challenges"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      community_posts: {
-        Row: {
-          id: string
-          coach_id: string
-          user_id: string
-          parent_id: string | null
-          body: string
-          is_announcement: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          coach_id: string
-          user_id: string
-          parent_id?: string | null
-          body: string
-          is_announcement?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          coach_id?: string
-          user_id?: string
-          parent_id?: string | null
-          body?: string
-          is_announcement?: boolean
-          created_at?: string
-        }
-        Relationships: []
-      }
-      coach_payout_accounts: {
-        Row: {
-          coach_id: string
-          provider: string
-          bank_name: string | null
-          bank_account_number: string | null
-          bank_account_holder: string | null
-          ewallet_kind: string | null
-          ewallet_phone: string | null
-          payout_schedule: string
-          min_payout_cents: number
-          is_verified: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          coach_id: string
-          provider?: string
-          bank_name?: string | null
-          bank_account_number?: string | null
-          bank_account_holder?: string | null
-          ewallet_kind?: string | null
-          ewallet_phone?: string | null
-          payout_schedule?: string
-          min_payout_cents?: number
-          is_verified?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          coach_id?: string
-          provider?: string
-          bank_name?: string | null
-          bank_account_number?: string | null
-          bank_account_holder?: string | null
-          ewallet_kind?: string | null
-          ewallet_phone?: string | null
-          payout_schedule?: string
-          min_payout_cents?: number
-          is_verified?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      payouts: {
-        Row: {
-          id: string
-          coach_id: string
-          amount_cents: number
-          status: Database["public"]["Enums"]["payout_status"]
-          xendit_payout_id: string | null
-          payout_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          coach_id: string
-          amount_cents: number
-          status?: Database["public"]["Enums"]["payout_status"]
-          xendit_payout_id?: string | null
-          payout_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          coach_id?: string
-          amount_cents?: number
-          status?: Database["public"]["Enums"]["payout_status"]
-          xendit_payout_id?: string | null
-          payout_at?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      coach_daily_stats: {
-        Row: {
-          id: string
-          coach_id: string
-          stat_date: string
-          revenue_cents: number
-          new_subscribers: number
-          churned_subscribers: number
-          content_views: number
-          messages_received: number
-        }
-        Insert: {
-          id?: string
-          coach_id: string
-          stat_date: string
-          revenue_cents?: number
-          new_subscribers?: number
-          churned_subscribers?: number
-          content_views?: number
-          messages_received?: number
-        }
-        Update: {
-          id?: string
-          coach_id?: string
-          stat_date?: string
-          revenue_cents?: number
-          new_subscribers?: number
-          churned_subscribers?: number
-          content_views?: number
-          messages_received?: number
-        }
-        Relationships: []
-      }
-      subscriber_tags: {
-        Row: {
-          id: string
-          coach_id: string
-          mentee_id: string
-          tag: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          coach_id: string
-          mentee_id: string
-          tag: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          coach_id?: string
-          mentee_id?: string
-          tag?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      subscriber_notes: {
-        Row: {
-          id: string
-          coach_id: string
-          mentee_id: string
-          note: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          coach_id: string
-          mentee_id: string
-          note: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          coach_id?: string
-          mentee_id?: string
-          note?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -1137,9 +1170,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "coach" | "mentee"
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
-      challenge_status: "draft" | "open" | "active" | "completed" | "cancelled"
-      challenge_lesson_type: "text" | "video" | "audio" | "assignment"
-      payout_status: "pending" | "processing" | "completed" | "failed"
+      challenge_lesson_type: "text" | "video" | "quiz" | "task"
+      challenge_status: "draft" | "open" | "active" | "closed" | "completed"
       media_type: "text" | "image" | "video" | "pdf"
       niche:
         | "Strength"
@@ -1285,6 +1317,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "coach", "mentee"],
       booking_status: ["pending", "confirmed", "completed", "cancelled"],
+      challenge_lesson_type: ["text", "video", "quiz", "task"],
+      challenge_status: ["draft", "open", "active", "closed", "completed"],
       media_type: ["text", "image", "video", "pdf"],
       niche: [
         "Strength",

@@ -1,179 +1,125 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminShell } from "./AdminShell";
-import { useSession } from "@/hooks/useSession";
+import AdminShell from "./AdminShell";
+import { Button } from "@/components/ui/button";
+import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
-type StatusFilter = "all" | "active" | "trialing" | "canceled" | "past_due";
+const STATUS_FILTERS = ["all", "active", "trialing", "canceled", "past_due"] as const;
+type Filter = (typeof STATUS_FILTERS)[number];
 
-interface SubRow {
+interface Row {
   id: string;
-  mentee_name: string;
-  mentee_handle: string;
-  coach_name: string;
-  coach_handle: string;
-  tier_name: string;
   status: string;
-  created_at: string;
+  current_period_end: string | null;
+  mentee_id: string;
+  coach_id: string;
+  tier_id: string;
+  mentee_name: string;
+  coach_name: string;
+  tier_name: string;
 }
 
-const AdminSubscriptions = () => {
-  const { user: adminUser } = useSession();
+export default function AdminSubscriptions() {
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
-  const { data: subs = [], isLoading } = useQuery<SubRow[]>({
-    queryKey: ["admin-subscriptions"],
+  const { data: rows = [] } = useQuery<Row[]>({
+    queryKey: ["admin-subs"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: subs } = await supabase
         .from("subscriptions")
-        .select("id, status, created_at, mentee_id, coach_id, subscription_tiers(name)")
+        .select("id, status, current_period_end, mentee_id, coach_id, tier_id")
         .order("created_at", { ascending: false })
         .limit(500);
-      if (!data?.length) return [];
-
-      const allIds = [...new Set([...data.map((s) => s.mentee_id), ...data.map((s) => s.coach_id)])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, handle")
-        .in("id", allIds);
-
-      const pm = new Map((profiles ?? []).map((p) => [p.id, p]));
-      return data.map((s) => {
-        const mentee = pm.get(s.mentee_id);
-        const coach = pm.get(s.coach_id);
-        const tier = s.subscription_tiers as unknown as { name: string } | null;
-        return {
-          id: s.id,
-          mentee_name: mentee?.display_name ?? "—",
-          mentee_handle: mentee?.handle ?? "",
-          coach_name: coach?.display_name ?? "—",
-          coach_handle: coach?.handle ?? "",
-          tier_name: tier?.name ?? "—",
-          status: s.status,
-          created_at: s.created_at,
-        };
-      });
+      const ids = Array.from(new Set([...(subs ?? []).map((s) => s.mentee_id), ...(subs ?? []).map((s) => s.coach_id)]));
+      const tierIds = Array.from(new Set((subs ?? []).map((s) => s.tier_id)));
+      const [profs, tiers] = await Promise.all([
+        ids.length ? supabase.from("profiles").select("id, display_name").in("id", ids) : { data: [] as { id: string; display_name: string }[] },
+        tierIds.length ? supabase.from("subscription_tiers").select("id, name").in("id", tierIds) : { data: [] as { id: string; name: string }[] },
+      ]);
+      const pMap = new Map((profs.data ?? []).map((p) => [p.id, p.display_name]));
+      const tMap = new Map((tiers.data ?? []).map((t) => [t.id, t.name]));
+      return (subs ?? []).map((s) => ({
+        ...s,
+        mentee_name: pMap.get(s.mentee_id) ?? "—",
+        coach_name: pMap.get(s.coach_id) ?? "—",
+        tier_name: tMap.get(s.tier_id) ?? "—",
+      })) as Row[];
     },
   });
 
-  const cancelSub = useMutation({
-    mutationFn: async (subId: string) => {
-      await supabase.from("subscriptions").update({ status: "canceled" }).eq("id", subId);
-      await supabase.from("admin_audit_log").insert({
-        admin_id: adminUser!.id,
-        action: "cancel_subscription",
-        target_table: "subscriptions",
-        target_id: subId,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-subscriptions"] });
-      toast.success("Subscription canceled");
-    },
-  });
+  const filtered = useMemo(() => (filter === "all" ? rows : rows.filter((r) => r.status === filter)), [rows, filter]);
 
-  const STATUSES: StatusFilter[] = ["all", "active", "trialing", "canceled", "past_due"];
-
-  const filtered = subs.filter((s) => {
-    const matchStatus = statusFilter === "all" || s.status === statusFilter;
-    const matchSearch =
-      s.mentee_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.coach_name.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
-  });
-
-  const statusColor: Record<string, string> = {
-    active: "bg-green-100 text-green-800",
-    trialing: "bg-blue-100 text-blue-800",
-    canceled: "bg-red-100 text-red-800",
-    past_due: "bg-yellow-100 text-yellow-800",
+  const cancel = async (id: string) => {
+    if (!confirm("Cancel this subscription?")) return;
+    const { error } = await supabase.from("subscriptions").update({ status: "canceled" }).eq("id", id);
+    if (error) return toast.error(error.message);
+    await logAdminAction({ action: "subscription.cancel", target_table: "subscriptions", target_id: id });
+    toast.success("Canceled");
+    qc.invalidateQueries({ queryKey: ["admin-subs"] });
   };
 
   return (
-    <AdminShell>
-      <div className="mb-4 flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-display text-2xl">All Subscriptions ({subs.length})</h2>
-          <input
-            className="brutal-input w-full sm:w-64"
-            placeholder="Search mentee or coach…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={cn(
-                "brutal-tag text-xs capitalize",
-                statusFilter === s ? "bg-ink text-ink-foreground" : "",
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+    <AdminShell title="Subscriptions" subtitle={`${rows.length} most recent`}>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {STATUS_FILTERS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`border-2 border-ink px-3 py-1.5 text-xs font-semibold uppercase ${filter === s ? "bg-ink text-ink-foreground" : "bg-surface"}`}
+          >
+            {s}
+          </button>
+        ))}
       </div>
-
-      {isLoading ? (
-        <div className="brutal-card-sm p-8 text-center text-sm">Loading…</div>
-      ) : (
-        <div className="overflow-x-auto border-2 border-ink">
-          <table className="w-full text-sm">
-            <thead className="bg-ink text-ink-foreground text-xs uppercase tracking-wide">
-              <tr>
-                <th className="px-3 py-2 text-left">Mentee</th>
-                <th className="px-3 py-2 text-left">Coach</th>
-                <th className="px-3 py-2 text-left">Tier</th>
-                <th className="px-3 py-2 text-left">Status</th>
-                <th className="px-3 py-2 text-left">Since</th>
-                <th className="px-3 py-2 text-left"></th>
+      <div className="overflow-x-auto border-2 border-ink">
+        <table className="w-full text-sm">
+          <thead className="bg-ink text-ink-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">Mentee</th>
+              <th className="px-3 py-2 text-left">Coach</th>
+              <th className="px-3 py-2 text-left">Tier</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Period end</th>
+              <th className="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r, i) => (
+              <tr key={r.id} className={`border-t-2 border-ink/20 ${i % 2 ? "bg-background" : "bg-surface"}`}>
+                <td className="px-3 py-2">{r.mentee_name}</td>
+                <td className="px-3 py-2">{r.coach_name}</td>
+                <td className="px-3 py-2">{r.tier_name}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${
+                      r.status === "active"
+                        ? "bg-green-200 text-green-900"
+                        : r.status === "trialing"
+                        ? "bg-yellow-200 text-yellow-900"
+                        : r.status === "canceled"
+                        ? "bg-red-200 text-red-900"
+                        : "bg-blue-200 text-blue-900"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">{r.current_period_end ? new Date(r.current_period_end).toLocaleDateString() : "—"}</td>
+                <td className="px-3 py-2">
+                  {(r.status === "active" || r.status === "trialing") && (
+                    <Button size="sm" onClick={() => cancel(r.id)} className="border-2 border-ink bg-destructive text-destructive-foreground">
+                      Cancel
+                    </Button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s, i) => (
-                <tr key={s.id} className={cn("border-t border-ink/30", i % 2 === 0 ? "bg-surface" : "bg-background")}>
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{s.mentee_name}</p>
-                    <p className="text-xs text-muted-foreground">@{s.mentee_handle}</p>
-                  </td>
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{s.coach_name}</p>
-                    <p className="text-xs text-muted-foreground">@{s.coach_handle}</p>
-                  </td>
-                  <td className="px-3 py-2">{s.tier_name}</td>
-                  <td className="px-3 py-2">
-                    <span className={cn("rounded px-1.5 py-0.5 text-xs font-semibold uppercase", statusColor[s.status] ?? "bg-muted")}>
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {new Date(s.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2">
-                    {s.status !== "canceled" && (
-                      <button
-                        onClick={() => { if (confirm("Cancel this subscription?")) cancelSub.mutate(s.id); }}
-                        className="brutal-tag text-xs text-destructive"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </AdminShell>
   );
-};
-
-export default AdminSubscriptions;
+}

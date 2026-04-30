@@ -1,216 +1,137 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminShell } from "./AdminShell";
+import AdminShell from "./AdminShell";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/hooks/useSession";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
-interface Profile {
+type AppRole = "admin" | "coach" | "mentee";
+
+interface Row {
   id: string;
   display_name: string;
   handle: string;
-  bio: string | null;
   avatar_url: string | null;
+  bio: string | null;
   created_at: string;
   follower_count: number;
 }
 
-interface UserRole {
-  role: string;
-}
-
-interface UserDetail extends Profile {
-  roles: UserRole[];
-}
-
-const AdminUsers = () => {
-  const { user: adminUser } = useSession();
+export default function AdminUsers() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<UserDetail | null>(null);
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState<Row | null>(null);
 
-  const { data: profiles = [], isLoading } = useQuery<Profile[]>({
+  const { data: users = [] } = useQuery<Row[]>({
     queryKey: ["admin-users"],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, handle, bio, avatar_url, created_at, follower_count")
+        .select("id, display_name, handle, avatar_url, bio, created_at, follower_count")
         .order("created_at", { ascending: false })
         .limit(500);
-      return data ?? [];
+      return (data ?? []) as Row[];
     },
   });
 
-  const openDetail = async (p: Profile) => {
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", p.id);
-    setSelected({ ...p, roles: roles ?? [] });
+  const { data: openRoles = [] } = useQuery<AppRole[]>({
+    queryKey: ["admin-user-roles", open?.id],
+    enabled: !!open?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", open!.id);
+      return (data ?? []).map((r: { role: AppRole }) => r.role);
+    },
+  });
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return users;
+    return users.filter((u) => u.display_name?.toLowerCase().includes(s) || u.handle?.toLowerCase().includes(s));
+  }, [users, q]);
+
+  const toggleRole = async (role: AppRole) => {
+    if (!open) return;
+    const has = openRoles.includes(role);
+    if (has) {
+      if (!confirm(`Revoke "${role}" from ${open.display_name}?`)) return;
+      await supabase.from("user_roles").delete().eq("user_id", open.id).eq("role", role);
+      await logAdminAction({ action: "role.revoke", target_table: "user_roles", target_id: open.id, payload: { role } });
+      toast.success(`Revoked ${role}`);
+    } else {
+      await supabase.from("user_roles").insert({ user_id: open.id, role });
+      await logAdminAction({ action: "role.grant", target_table: "user_roles", target_id: open.id, payload: { role } });
+      toast.success(`Granted ${role}`);
+    }
+    qc.invalidateQueries({ queryKey: ["admin-user-roles", open.id] });
   };
 
-  const grantRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      await supabase.from("user_roles").insert({ user_id: userId, role: role as "admin" | "coach" | "mentee" });
-      await supabase.from("admin_audit_log").insert({
-        admin_id: adminUser!.id,
-        action: "grant_role",
-        target_table: "user_roles",
-        target_id: userId,
-        payload: { role },
-      });
-    },
-    onSuccess: (_, { userId }) => {
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
-      if (selected?.id === userId) {
-        openDetail(selected);
-      }
-      toast.success("Role granted");
-    },
-  });
-
-  const revokeRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as "admin" | "coach" | "mentee");
-      await supabase.from("admin_audit_log").insert({
-        admin_id: adminUser!.id,
-        action: "revoke_role",
-        target_table: "user_roles",
-        target_id: userId,
-        payload: { role },
-      });
-    },
-    onSuccess: (_, { userId }) => {
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
-      if (selected?.id === userId) {
-        openDetail(selected);
-      }
-      toast.success("Role revoked");
-    },
-  });
-
-  const filtered = profiles.filter(
-    (p) =>
-      p.display_name.toLowerCase().includes(search.toLowerCase()) ||
-      p.handle.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const ROLES: Array<"admin" | "coach" | "mentee"> = ["admin", "coach", "mentee"];
-
   return (
-    <AdminShell>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-2xl">All Users ({profiles.length})</h2>
-        <input
-          className="brutal-input w-full sm:w-64"
-          placeholder="Search name or handle…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+    <AdminShell title="Users" subtitle={`${users.length} most recent`}>
+      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or handle…" className="mb-4 max-w-md border-2 border-ink" />
+      <div className="overflow-x-auto border-2 border-ink">
+        <table className="w-full text-sm">
+          <thead className="bg-ink text-ink-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">User</th>
+              <th className="px-3 py-2 text-left">Handle</th>
+              <th className="px-3 py-2 text-left">Joined</th>
+              <th className="px-3 py-2 text-left">Followers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((u, i) => (
+              <tr
+                key={u.id}
+                onClick={() => setOpen(u)}
+                className={`cursor-pointer border-t-2 border-ink/20 ${i % 2 ? "bg-background" : "bg-surface"} hover:bg-accent/30`}
+              >
+                <td className="flex items-center gap-2 px-3 py-2">
+                  {u.avatar_url && <img src={u.avatar_url} alt="" className="h-7 w-7 border-2 border-ink object-cover" />}
+                  <span className="font-medium">{u.display_name}</span>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">@{u.handle}</td>
+                <td className="px-3 py-2 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
+                <td className="px-3 py-2">{u.follower_count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {isLoading ? (
-        <div className="brutal-card-sm p-8 text-center text-sm">Loading…</div>
-      ) : (
-        <div className="overflow-x-auto border-2 border-ink">
-          <table className="w-full text-sm">
-            <thead className="bg-ink text-ink-foreground text-xs uppercase tracking-wide">
-              <tr>
-                <th className="px-3 py-2 text-left">User</th>
-                <th className="px-3 py-2 text-left">Handle</th>
-                <th className="px-3 py-2 text-left">Joined</th>
-                <th className="px-3 py-2 text-left">Followers</th>
-                <th className="px-3 py-2 text-left"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p, i) => (
-                <tr key={p.id} className={cn("border-t border-ink/30", i % 2 === 0 ? "bg-surface" : "bg-background")}>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 shrink-0 border border-ink bg-accent overflow-hidden">
-                        {p.avatar_url && <img src={p.avatar_url} className="h-full w-full object-cover" alt="" />}
-                      </div>
-                      <span className="font-medium">{p.display_name}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">@{p.handle}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {new Date(p.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2">{p.follower_count}</td>
-                  <td className="px-3 py-2">
-                    <button onClick={() => openDetail(p)} className="brutal-tag text-xs">
-                      Manage →
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Detail modal */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="brutal-card w-full max-w-md bg-background p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
+      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent className="border-2 border-ink">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">{open?.display_name}</DialogTitle>
+          </DialogHeader>
+          {open && (
+            <div className="space-y-4 text-sm">
+              <div className="text-xs text-muted-foreground">UUID: {open.id}</div>
+              {open.bio && <p>{open.bio}</p>}
               <div>
-                <h3 className="font-display text-2xl">{selected.display_name}</h3>
-                <p className="text-sm text-muted-foreground">@{selected.handle}</p>
-                {selected.bio && <p className="mt-1 text-sm">{selected.bio}</p>}
+                <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Roles</div>
+                <div className="flex flex-wrap gap-2">
+                  {(["admin", "coach", "mentee"] as AppRole[]).map((r) => {
+                    const has = openRoles.includes(r);
+                    return (
+                      <Button
+                        key={r}
+                        size="sm"
+                        onClick={() => toggleRole(r)}
+                        className={`border-2 border-ink ${has ? "bg-ink text-ink-foreground" : "bg-surface text-ink"}`}
+                      >
+                        {has ? `✓ ${r}` : r}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
-              <button onClick={() => setSelected(null)} className="brutal-tag text-xs">✕</button>
             </div>
-
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide">Roles</p>
-            <div className="flex flex-wrap gap-2">
-              {ROLES.map((role) => {
-                const hasRole = selected.roles.some((r) => r.role === role);
-                return (
-                  <button
-                    key={role}
-                    onClick={() => {
-                      if (hasRole) {
-                        revokeRole.mutate({ userId: selected.id, role });
-                        setSelected((s) => s ? { ...s, roles: s.roles.filter((r) => r.role !== role) } : s);
-                      } else {
-                        grantRole.mutate({ userId: selected.id, role });
-                        setSelected((s) => s ? { ...s, roles: [...s.roles, { role }] } : s);
-                      }
-                    }}
-                    className={cn(
-                      "border-2 border-ink px-3 py-1 text-xs font-semibold uppercase",
-                      hasRole ? "bg-ink text-ink-foreground" : "bg-surface hover:bg-accent/40",
-                    )}
-                  >
-                    {hasRole ? `✓ ${role}` : `+ ${role}`}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <span>Joined: {new Date(selected.created_at).toLocaleDateString()}</span>
-              <span>Followers: {selected.follower_count}</span>
-              <span className="col-span-2 font-mono text-[10px] break-all">ID: {selected.id}</span>
-            </div>
-
-            <Button
-              variant="outline"
-              className="mt-4 w-full border-2 border-ink"
-              onClick={() => setSelected(null)}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminShell>
   );
-};
-
-export default AdminUsers;
+}

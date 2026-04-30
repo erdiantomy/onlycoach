@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, LogOut, ShieldAlert, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Shield, User } from "lucide-react";
 
 const links = [
   { to: "/discover", label: "Discover" },
@@ -26,6 +26,7 @@ export const TopNav = () => {
     if (!user) {
       setDisplayName(null);
       setIsCoach(false);
+      setIsAdmin(false);
       return;
     }
     supabase
@@ -83,9 +84,14 @@ export const TopNav = () => {
           {user ? (
             <>
               {isAdmin && (
-                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex border-2 border-red-600 text-red-700 hover:bg-red-50">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden border-2 border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 sm:inline-flex"
+                >
                   <Link to="/admin">
-                    <ShieldAlert className="mr-1.5 h-3.5 w-3.5" /> Admin
+                    <Shield className="mr-1.5 h-3.5 w-3.5" /> Admin
                   </Link>
                 </Button>
               )}
