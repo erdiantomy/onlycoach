@@ -926,7 +926,7 @@ export type Database = {
       }
       subscriber_notes: {
         Row: {
-          body: string
+          body: string | null
           coach_id: string
           created_at: string
           id: string
@@ -935,7 +935,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          body: string
+          body?: string | null
           coach_id: string
           created_at?: string
           id?: string
@@ -944,7 +944,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          body?: string
+          body?: string | null
           coach_id?: string
           created_at?: string
           id?: string

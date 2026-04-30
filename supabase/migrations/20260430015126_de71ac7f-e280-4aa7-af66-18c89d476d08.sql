@@ -1,0 +1,1 @@
+alter table public.subscriber_notes alter column body drop not null;
