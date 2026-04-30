@@ -44,7 +44,7 @@ export default function AdminPayouts() {
     queryKey: ["admin-payouts"],
     queryFn: async () => {
       const { data } = await supabase.from("payouts").select("*").order("requested_at", { ascending: false }).limit(500);
-      return (data ?? []) as Payout[];
+      return (data ?? []) as unknown as Payout[];
     },
   });
   const payoutNames = useCoachNames(Array.from(new Set(payoutRows.map((p) => p.coach_id))));
@@ -54,7 +54,7 @@ export default function AdminPayouts() {
     queryKey: ["admin-accounts"],
     queryFn: async () => {
       const { data } = await supabase.from("coach_payout_accounts").select("*").limit(500);
-      return (data ?? []) as Account[];
+      return (data ?? []) as unknown as Account[];
     },
   });
   const acctNames = useCoachNames(Array.from(new Set(accountRows.map((a) => a.coach_id))));

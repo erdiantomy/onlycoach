@@ -56,14 +56,17 @@ export default function AdminOverview() {
   useEffect(() => {
     const ch = supabase
       .channel("admin-feed")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "profile_views" }, (p) => {
-        setFeed((f) => [{ id: crypto.randomUUID(), kind: "view", label: `Profile viewed`, ts: new Date().toISOString() }, ...f].slice(0, 50));
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "profile_views" }, () => {
+        const item: FeedItem = { id: crypto.randomUUID(), kind: "view", label: "Profile viewed", ts: new Date().toISOString() };
+        setFeed((f) => [item, ...f].slice(0, 50));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "subscriptions" }, () => {
-        setFeed((f) => [{ id: crypto.randomUUID(), kind: "subscription", label: "New subscription", ts: new Date().toISOString() }, ...f].slice(0, 50));
+        const item: FeedItem = { id: crypto.randomUUID(), kind: "subscription", label: "New subscription", ts: new Date().toISOString() };
+        setFeed((f) => [item, ...f].slice(0, 50));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_posts" }, () => {
-        setFeed((f) => [{ id: crypto.randomUUID(), kind: "community", label: "New community post", ts: new Date().toISOString() }, ...f].slice(0, 50));
+        const item: FeedItem = { id: crypto.randomUUID(), kind: "community", label: "New community post", ts: new Date().toISOString() };
+        setFeed((f) => [item, ...f].slice(0, 50));
       })
       .subscribe();
     return () => {
