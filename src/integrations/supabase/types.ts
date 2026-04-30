@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          id: string
+          admin_id: string | null
+          action: string
+          target_table: string | null
+          target_id: string | null
+          payload: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id?: string | null
+          action: string
+          target_table?: string | null
+          target_id?: string | null
+          payload?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string | null
+          action?: string
+          target_table?: string | null
+          target_id?: string | null
+          payload?: Record<string, unknown> | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       availability_slots: {
         Row: {
           coach_id: string
