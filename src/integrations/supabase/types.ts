@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          id: string
+          payload: Json | null
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       availability_slots: {
         Row: {
           coach_id: string
@@ -44,6 +82,33 @@ export type Database = {
           is_booked?: boolean
           price_cents?: number
           starts_at?: string
+        }
+        Relationships: []
+      }
+      badges: {
+        Row: {
+          badge_type: string
+          earned_at: string
+          icon: string | null
+          id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          label?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -103,6 +168,132 @@ export type Database = {
           },
         ]
       }
+      challenge_curriculum: {
+        Row: {
+          body: string | null
+          challenge_id: string
+          created_at: string
+          day_number: number
+          id: string
+          lesson_type: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          challenge_id: string
+          created_at?: string
+          day_number: number
+          id?: string
+          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          body?: string | null
+          challenge_id?: string
+          created_at?: string
+          day_number?: number
+          id?: string
+          lesson_type?: Database["public"]["Enums"]["challenge_lesson_type"]
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_curriculum_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_enrollments: {
+        Row: {
+          challenge_id: string
+          id: string
+          joined_at: string
+          mentee_id: string
+        }
+        Insert: {
+          challenge_id: string
+          id?: string
+          joined_at?: string
+          mentee_id: string
+        }
+        Update: {
+          challenge_id?: string
+          id?: string
+          joined_at?: string
+          mentee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_enrollments_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          coach_id: string
+          created_at: string
+          description: string | null
+          duration_days: number
+          ends_at: string | null
+          id: string
+          is_published: boolean
+          max_participants: number | null
+          price_cents: number
+          starts_at: string | null
+          status: Database["public"]["Enums"]["challenge_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          coach_id: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          is_published?: boolean
+          max_participants?: number | null
+          price_cents?: number
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["challenge_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          coach_id?: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          ends_at?: string | null
+          id?: string
+          is_published?: boolean
+          max_participants?: number | null
+          price_cents?: number
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["challenge_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coach_billing: {
         Row: {
           stripe_account_id: string | null
@@ -118,6 +309,84 @@ export type Database = {
           stripe_account_id?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      coach_daily_stats: {
+        Row: {
+          churned_subscribers: number
+          coach_id: string
+          content_views: number
+          day: string
+          id: string
+          new_posts: number
+          new_subscribers: number
+          revenue_cents: number
+          stat_date: string
+        }
+        Insert: {
+          churned_subscribers?: number
+          coach_id: string
+          content_views?: number
+          day: string
+          id?: string
+          new_posts?: number
+          new_subscribers?: number
+          revenue_cents?: number
+          stat_date?: string
+        }
+        Update: {
+          churned_subscribers?: number
+          coach_id?: string
+          content_views?: number
+          day?: string
+          id?: string
+          new_posts?: number
+          new_subscribers?: number
+          revenue_cents?: number
+          stat_date?: string
+        }
+        Relationships: []
+      }
+      coach_payout_accounts: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          coach_id: string
+          created_at: string
+          id: string
+          payout_schedule: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          coach_id: string
+          created_at?: string
+          id?: string
+          payout_schedule?: string
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          coach_id?: string
+          created_at?: string
+          id?: string
+          payout_schedule?: string
+          provider?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -150,6 +419,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      community_posts: {
+        Row: {
+          author_id: string | null
+          body: string
+          coach_id: string | null
+          created_at: string
+          id: string
+          is_announcement: boolean
+          user_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          coach_id?: string | null
+          created_at?: string
+          id?: string
+          is_announcement?: boolean
+          user_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          coach_id?: string | null
+          created_at?: string
+          id?: string
+          is_announcement?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
@@ -262,6 +569,57 @@ export type Database = {
         }
         Relationships: []
       }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: []
+      }
+      mentee_profiles: {
+        Row: {
+          created_at: string
+          goals: string | null
+          interests: string[]
+          is_public: boolean
+          location: string | null
+          show_subscriptions: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goals?: string | null
+          interests?: string[]
+          is_public?: boolean
+          location?: string | null
+          show_subscriptions?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goals?: string | null
+          interests?: string[]
+          is_public?: boolean
+          location?: string | null
+          show_subscriptions?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachment_path: string | null
@@ -299,6 +657,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payouts: {
+        Row: {
+          amount_cents: number
+          coach_id: string
+          created_at: string
+          currency: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          requested_at: string
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          coach_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          coach_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          requested_at?: string
+          status?: string
+        }
+        Relationships: []
       }
       post_comments: {
         Row: {
@@ -409,9 +803,11 @@ export type Database = {
           comment_count: number
           created_at: string
           id: string
+          is_locked: boolean
           like_count: number
           media_type: Database["public"]["Enums"]["media_type"]
           required_tier_id: string | null
+          title: string | null
         }
         Insert: {
           body: string
@@ -419,9 +815,11 @@ export type Database = {
           comment_count?: number
           created_at?: string
           id?: string
+          is_locked?: boolean
           like_count?: number
           media_type?: Database["public"]["Enums"]["media_type"]
           required_tier_id?: string | null
+          title?: string | null
         }
         Update: {
           body?: string
@@ -429,9 +827,11 @@ export type Database = {
           comment_count?: number
           created_at?: string
           id?: string
+          is_locked?: boolean
           like_count?: number
           media_type?: Database["public"]["Enums"]["media_type"]
           required_tier_id?: string | null
+          title?: string | null
         }
         Relationships: [
           {
@@ -464,12 +864,37 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_views: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          referrer: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          referrer?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          referrer?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
           created_at: string
           display_name: string
+          follower_count: number
           handle: string
           headline: string | null
           id: string
@@ -480,6 +905,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name: string
+          follower_count?: number
           handle: string
           headline?: string | null
           id: string
@@ -490,10 +916,65 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string
+          follower_count?: number
           handle?: string
           headline?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriber_notes: {
+        Row: {
+          body: string | null
+          coach_id: string
+          created_at: string
+          id: string
+          mentee_id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          coach_id: string
+          created_at?: string
+          id?: string
+          mentee_id: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          coach_id?: string
+          created_at?: string
+          id?: string
+          mentee_id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriber_tags: {
+        Row: {
+          coach_id: string
+          created_at: string
+          id: string
+          mentee_id: string
+          tag: string
+        }
+        Insert: {
+          coach_id: string
+          created_at?: string
+          id?: string
+          mentee_id: string
+          tag: string
+        }
+        Update: {
+          coach_id?: string
+          created_at?: string
+          id?: string
+          mentee_id?: string
+          tag?: string
         }
         Relationships: []
       }
@@ -689,6 +1170,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "coach" | "mentee"
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
+      challenge_lesson_type: "text" | "video" | "quiz" | "task"
+      challenge_status: "draft" | "open" | "active" | "closed" | "completed"
       media_type: "text" | "image" | "video" | "pdf"
       niche:
         | "Strength"
@@ -834,6 +1317,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "coach", "mentee"],
       booking_status: ["pending", "confirmed", "completed", "cancelled"],
+      challenge_lesson_type: ["text", "video", "quiz", "task"],
+      challenge_status: ["draft", "open", "active", "closed", "completed"],
       media_type: ["text", "image", "video", "pdf"],
       niche: [
         "Strength",

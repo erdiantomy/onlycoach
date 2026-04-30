@@ -31,6 +31,16 @@ import SavedPosts from "./pages/SavedPosts.tsx";
 import MenteeProfile from "./pages/MenteeProfile.tsx";
 import ProfileRedirect from "./pages/ProfileRedirect.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import RequireAdmin from "./components/auth/RequireAdmin.tsx";
+import AdminOverview from "./pages/admin/AdminOverview.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import AdminCoaches from "./pages/admin/AdminCoaches.tsx";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions.tsx";
+import AdminPayouts from "./pages/admin/AdminPayouts.tsx";
+import AdminContent from "./pages/admin/AdminContent.tsx";
+import AdminEmails from "./pages/admin/AdminEmails.tsx";
+import AdminAnalytics from "./pages/admin/AdminAnalytics.tsx";
+import AdminSystem from "./pages/admin/AdminSystem.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { I18nProvider } from "./lib/i18n.tsx";
@@ -77,6 +87,16 @@ const App = () => (
           <Route path="/studio/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
           <Route path="/studio/referrals" element={<RequireAuth><Referrals /></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+
+          <Route path="/admin" element={<RequireAdmin><AdminOverview /></RequireAdmin>} />
+          <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
+          <Route path="/admin/coaches" element={<RequireAdmin><AdminCoaches /></RequireAdmin>} />
+          <Route path="/admin/subscriptions" element={<RequireAdmin><AdminSubscriptions /></RequireAdmin>} />
+          <Route path="/admin/payouts" element={<RequireAdmin><AdminPayouts /></RequireAdmin>} />
+          <Route path="/admin/content" element={<RequireAdmin><AdminContent /></RequireAdmin>} />
+          <Route path="/admin/emails" element={<RequireAdmin><AdminEmails /></RequireAdmin>} />
+          <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
+          <Route path="/admin/system" element={<RequireAdmin><AdminSystem /></RequireAdmin>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
