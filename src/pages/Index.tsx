@@ -1,18 +1,65 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
+import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatIdr } from "@/lib/utils";
 
-const featuredCoaches = [
-  { handle: "maya", name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
-  { handle: "theo", name: "Theo Lindberg", niche: "Mindset · Habits", price: 24, rating: 4.8 },
-  { handle: "ines", name: "Ines Kovač", niche: "Run · Endurance", price: 15, rating: 4.9 },
-  { handle: "diego", name: "Diego Ramos", niche: "Nutrition · Cut", price: 22, rating: 4.7 },
-];
+interface FeaturedCoach {
+  user_id: string;
+  niche: string;
+  rating: number;
+  lowestPriceCents: number | null;
+  profiles: {
+    handle: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+}
 
 const Index = () => {
+  const { data: featuredCoaches = [] } = useQuery<FeaturedCoach[]>({
+    queryKey: ["featured-coaches"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("coach_profiles")
+        .select("user_id, niche, rating, profiles(handle, display_name, avatar_url)")
+        .eq("is_published", true)
+        .order("subscriber_count", { ascending: false })
+        .limit(4);
+
+      const rawCoaches = data ?? [];
+      const coachIds = rawCoaches.map((c) => c.user_id);
+      const tierMap: Map<string, number> = new Map();
+
+      if (coachIds.length > 0) {
+        const { data: tierData } = await supabase
+          .from("subscription_tiers")
+          .select("coach_id, price_cents")
+          .in("coach_id", coachIds)
+          .eq("is_active", true);
+
+        for (const t of tierData ?? []) {
+          const existing = tierMap.get(t.coach_id);
+          if (existing === undefined || t.price_cents < existing) {
+            tierMap.set(t.coach_id, t.price_cents);
+          }
+        }
+      }
+
+      return rawCoaches.map((c) => ({
+        user_id: c.user_id,
+        niche: c.niche,
+        rating: c.rating,
+        lowestPriceCents: tierMap.get(c.user_id) ?? null,
+        profiles: c.profiles as unknown as FeaturedCoach["profiles"],
+      }));
+    },
+  });
+
   return (
     <AppShell hideTabBar>
       {/* HERO */}
@@ -61,7 +108,7 @@ const Index = () => {
             </ul>
           </div>
 
-          {/* Hero card mockup — echoes the prototype's visual language */}
+          {/* Hero card mockup */}
           <div className="relative mx-auto w-full max-w-sm">
             <div className="brutal-card relative p-5">
               <div className="flex items-center justify-between">
@@ -71,7 +118,7 @@ const Index = () => {
               <div className="mt-5 aspect-[4/5] border-2 border-ink bg-primary/90">
                 <div className="flex h-full items-end justify-between p-4 text-primary-foreground">
                   <div>
-                    <div className="font-display text-2xl leading-none">MAYA O.</div>
+                    <div className="font-display text-2xl leading-none">YOUR COACH</div>
                     <div className="mt-1 text-xs uppercase tracking-wide opacity-80">
                       Strength · Hypertrophy
                     </div>
@@ -80,7 +127,7 @@ const Index = () => {
                 </div>
               </div>
               <button className="mt-4 w-full border-2 border-ink bg-accent py-3 font-display text-sm uppercase tracking-wide text-ink shadow-brutal-sm">
-                Subscribe — {formatIdr(19)}/mo
+                Subscribe — from Rp149.000/mo
               </button>
               <button className="mt-2 flex w-full items-center justify-center gap-2 border-2 border-ink bg-surface py-3 font-display text-sm uppercase tracking-wide text-ink">
                 <MessageCircle className="h-4 w-4" /> Message coach
@@ -100,21 +147,9 @@ const Index = () => {
           <h2 className="font-display text-3xl md:text-5xl">How it works</h2>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
-              {
-                n: "01",
-                t: "Find your coach",
-                d: "Browse verified coaches by niche, price, and reviews.",
-              },
-              {
-                n: "02",
-                t: "Subscribe",
-                d: "Pick a tier to unlock their feed, DMs, and bookings.",
-              },
-              {
-                n: "03",
-                t: "Show up",
-                d: "Consume content, chat anytime, and book live 1:1 sessions.",
-              },
+              { n: "01", t: "Find your coach", d: "Browse verified coaches by niche, price, and reviews." },
+              { n: "02", t: "Subscribe", d: "Pick a tier to unlock their feed, DMs, and bookings." },
+              { n: "03", t: "Show up", d: "Consume content, chat anytime, and book live 1:1 sessions." },
             ].map((step) => (
               <div key={step.n} className="brutal-card p-6">
                 <div className="font-display text-4xl text-primary">{step.n}</div>
@@ -138,31 +173,59 @@ const Index = () => {
               See all →
             </Link>
           </div>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredCoaches.map((c) => (
-              <article key={c.name} className="brutal-card-sm overflow-hidden">
-                <div className="aspect-[4/5] border-b-2 border-ink bg-primary/90" />
-                <div className="p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-display text-base">{c.name}</h3>
-                    <span className="text-xs font-semibold">★ {c.rating}</span>
-                  </div>
-                  <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                    {c.niche}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="font-display text-sm">{formatIdr(c.price)}<span className="text-xs">/mo</span></span>
-                    <Link
-                      to={`/coach/${c.handle}`}
-                      className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"
-                    >
-                      View
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+
+          {featuredCoaches.length === 0 ? (
+            <div className="mt-8 brutal-card p-10 text-center">
+              <p className="font-display text-xl">Coaches coming soon.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Want to be featured?{" "}
+                <Link to="/auth?mode=signup&role=coach" className="underline">
+                  Apply to coach →
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredCoaches.map((c) => {
+                const profile = c.profiles;
+                if (!profile) return null;
+                const initials = profile.display_name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+                return (
+                  <article key={c.user_id} className="brutal-card-sm overflow-hidden">
+                    <div className="aspect-[4/5] border-b-2 border-ink bg-primary/90 overflow-hidden">
+                      <Avatar className="h-full w-full rounded-none">
+                        <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.display_name} className="object-cover" />
+                        <AvatarFallback className="rounded-none bg-primary text-primary-foreground font-display text-4xl">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-display text-base">{profile.display_name}</h3>
+                        <span className="text-xs font-semibold">★ {c.rating.toFixed(1)}</span>
+                      </div>
+                      <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{c.niche}</p>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="font-display text-sm">
+                          {c.lowestPriceCents !== null
+                            ? <>{formatIdr(c.lowestPriceCents)}<span className="text-xs">/mo</span></>
+                            : <span className="text-xs text-muted-foreground">Free</span>
+                          }
+                        </span>
+                        <Link
+                          to={`/coach/${profile.handle}`}
+                          className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"
+                        >
+                          View
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

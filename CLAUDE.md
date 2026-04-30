@@ -60,6 +60,10 @@ Coach-facing pages live under `/studio/*` (content management, analytics, payout
 
 `src/lib/i18n.tsx` supports English (`en`) and Indonesian (`id`). Use `useI18n()` hook to access `t(key)` and `setLang()`. All UI strings that appear in the i18n dictionaries must go through `t()` — do not add new hardcoded strings to settings/nav without adding entries to both dictionaries.
 
+### Currency
+
+All prices in the database are stored as **integer Rupiah cents** (`price_cents` columns). Use `formatIdr(cents)` from `src/lib/utils.ts` to display them — it divides by 100 and formats as `Rp149.000`. Never multiply by a USD-to-IDR rate; the data is already in IDR.
+
 ### Design system
 
 The visual style is "neo-brutalist": thick borders, offset box shadows. Custom Tailwind tokens:
@@ -75,3 +79,44 @@ The Capacitor config (`capacitor.config.ts`) is env-aware:
 - Release: `CAP_ENV=production npm run mobile:build:release` — omits `server.url` and bundles `dist/`
 
 Never run `npx cap sync` for release without `CAP_ENV=production`. See `MOBILE_RELEASE.md` for the full release checklist.
+
+## Production Setup
+
+### Required environment variables (web/Vite)
+
+Copy `.env.example` to `.env` and fill in:
+
+```
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+### Required Supabase edge function secrets
+
+Set these in the Supabase dashboard → Settings → Edge Functions → Secrets:
+
+```
+STRIPE_SECRET_KEY          # Stripe secret key (sk_live_...)
+STRIPE_WEBHOOK_SECRET      # Stripe webhook signing secret (whsec_...)
+XENDIT_SECRET_KEY          # Xendit secret API key
+XENDIT_WEBHOOK_TOKEN       # Xendit callback verification token
+```
+
+### OAuth setup
+
+In the Supabase dashboard → Authentication → Providers:
+- **Google**: enable, add OAuth client ID and secret from Google Cloud Console
+- **Apple**: enable, add Service ID, Team ID, Key ID, and private key from Apple Developer
+
+### Custom domain / Redirect URLs
+
+In Supabase dashboard → Authentication → URL Configuration:
+- **Site URL**: `https://onlycoach.co`
+- **Redirect URLs**: add `https://onlycoach.co/**`, `https://*.lovableproject.com/**` (for preview), and `https://localhost:8080/**` (for local dev)
+
+### Storage buckets
+
+These are created by the first migration, but verify they exist in Supabase Storage:
+- `avatars` — public bucket (coach/mentee profile photos)
+- `post-media` — private bucket (images, videos, PDFs attached to posts)
+- `message-attachments` — private bucket (files sent in DMs)

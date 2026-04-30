@@ -113,7 +113,7 @@ const Analytics = () => {
         name: t.name,
         price_cents: t.price_cents,
         sub_count: t.sub_count,
-        revenue: (t.sub_count * t.price_cents) / 100,
+        revenue: t.sub_count * t.price_cents,
         pct: totalSubs > 0 ? (t.sub_count / totalSubs) * 100 : 0,
       }));
     },
@@ -121,12 +121,12 @@ const Analytics = () => {
 
   const totals = stats.reduce(
     (acc, d) => ({
-      revenue: acc.revenue + d.revenue_cents / 100,
+      revenueCents: acc.revenueCents + d.revenue_cents,
       newSubs: acc.newSubs + d.new_subscribers,
       churned: acc.churned + d.churned_subscribers,
       views: acc.views + d.content_views,
     }),
-    { revenue: 0, newSubs: 0, churned: 0, views: 0 },
+    { revenueCents: 0, newSubs: 0, churned: 0, views: 0 },
   );
 
   const churnRate =
@@ -136,7 +136,7 @@ const Analytics = () => {
 
   const chartData = stats.map((d) => ({
     date: d.stat_date.slice(5),
-    revenue: +(d.revenue_cents / 100).toFixed(2),
+    revenueCents: d.revenue_cents,
     newSubs: d.new_subscribers,
     views: d.content_views,
   }));
@@ -164,7 +164,7 @@ const Analytics = () => {
         </header>
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Revenue" value={formatIdr(totals.revenue)} icon={DollarSign} />
+          <StatCard label="Revenue" value={formatIdr(totals.revenueCents)} icon={DollarSign} />
           <StatCard label="New subscribers" value={totals.newSubs.toLocaleString()} icon={TrendingUp} />
           <StatCard label="Churn rate" value={`${churnRate}%`} icon={TrendingDown} />
           <StatCard label="Content views" value={totals.views.toLocaleString()} icon={Eye} />
@@ -188,14 +188,14 @@ const Analytics = () => {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                  <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => formatIdr(v)} />
                   <Tooltip
                     formatter={(value: number) => [formatIdr(value), "Revenue"]}
                     contentStyle={{ border: "2px solid hsl(var(--ink))", borderRadius: 0, background: "hsl(var(--surface))" }}
                   />
                   <Area
                     type="monotone"
-                    dataKey="revenue"
+                    dataKey="revenueCents"
                     stroke="hsl(var(--primary))"
                     strokeWidth={2}
                     fill="url(#revenueGrad)"

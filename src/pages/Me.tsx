@@ -3,14 +3,16 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreditCard, LogOut, Settings, Sparkles } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
+import { formatIdr } from "@/lib/utils";
 
 const Me = () => {
   const { user, loading, signOut } = useSession();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<{ display_name: string; handle: string } | null>(null);
+  const [profile, setProfile] = useState<{ display_name: string; handle: string; avatar_url: string | null } | null>(null);
   const [isCoach, setIsCoach] = useState(false);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ const Me = () => {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("display_name, handle")
+      .select("display_name, handle, avatar_url")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => data && setProfile(data));
@@ -69,14 +71,17 @@ const Me = () => {
     },
   });
 
-  const formatPrice = (cents: number) =>
-    `$${(cents / 100).toFixed(0)}`;
 
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-8 md:py-12">
         <header className="brutal-card flex items-center gap-4 p-5">
-          <div className="h-16 w-16 shrink-0 border-2 border-ink bg-accent" />
+          <Avatar className="h-16 w-16 shrink-0 rounded-none border-2 border-ink">
+            <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.display_name} className="object-cover" />
+            <AvatarFallback className="rounded-none bg-accent font-display text-xl">
+              {profile?.display_name.slice(0, 2).toUpperCase() ?? "ME"}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1">
             <h1 className="font-display text-2xl">
               {profile?.display_name ?? "You"}
@@ -113,11 +118,11 @@ const Me = () => {
                   to={`/coach/${s.coachHandle}`}
                   className="brutal-card-sm flex items-center gap-4 p-4 hover:-translate-x-0.5 hover:-translate-y-0.5"
                 >
-                  <div className="h-12 w-12 border-2 border-ink bg-primary" />
+                  <div className="h-12 w-12 shrink-0 border-2 border-ink bg-primary" />
                   <div className="flex-1">
                     <div className="font-display">{s.coachName}</div>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {s.tierName} · {formatPrice(s.priceCents)}/mo
+                      {s.tierName} · {formatIdr(s.priceCents)}/mo
                     </div>
                   </div>
                   <span className="brutal-tag bg-accent">Active</span>

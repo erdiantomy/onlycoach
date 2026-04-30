@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useSession } from "@/hooks/useSession";
 import { useSavedPosts } from "@/hooks/useSavedPosts";
 import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -17,6 +18,7 @@ import {
   PlayCircle,
   Send,
   X,
+  Download,
 } from "lucide-react";
 
 type FeedPost = {
@@ -30,8 +32,10 @@ type FeedPost = {
   coach_id: string;
   coach_display_name: string;
   coach_handle: string;
+  coach_avatar_url: string | null;
   is_locked: boolean;
   user_liked: boolean;
+  media_path: string | null;
 };
 
 const mediaIcon = {
@@ -94,12 +98,25 @@ const Feed = () => {
           ? (
               await supabase
                 .from("profiles")
-                .select("id, display_name, handle")
+                .select("id, display_name, handle, avatar_url")
                 .in("id", coachIds)
             ).data ?? []
           : [];
 
       const profileMap = new Map(profilesData.map((p) => [p.id, p]));
+
+      const postIds = rawPosts.map((p) => p.id);
+      const mediaData =
+        postIds.length > 0
+          ? (
+              await supabase
+                .from("post_media")
+                .select("post_id, storage_path")
+                .in("post_id", postIds)
+                .order("sort_order")
+            ).data ?? []
+          : [];
+      const mediaMap = new Map(mediaData.map((m) => [m.post_id, m.storage_path]));
 
       return rawPosts.map((p) => {
         const profile = profileMap.get(p.coach_id);
@@ -117,8 +134,10 @@ const Feed = () => {
           coach_id: p.coach_id,
           coach_display_name: profile?.display_name ?? "Unknown Coach",
           coach_handle: profile?.handle ?? "",
+          coach_avatar_url: profile?.avatar_url ?? null,
           is_locked: isLocked,
           user_liked: likedIds.has(p.id),
+          media_path: mediaMap.get(p.id) ?? null,
         };
       });
     },
@@ -257,7 +276,12 @@ const Feed = () => {
                   to={`/coach/${p.coach_handle}`}
                   className="flex items-center gap-3"
                 >
-                  <div className="h-9 w-9 border-2 border-ink bg-primary" />
+                  <Avatar className="h-9 w-9 rounded-none border-2 border-ink">
+                    <AvatarImage src={p.coach_avatar_url ?? undefined} alt={p.coach_display_name} className="object-cover" />
+                    <AvatarFallback className="rounded-none bg-primary text-primary-foreground text-xs font-display">
+                      {p.coach_display_name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <div className="font-display text-sm leading-none">
                       {p.coach_display_name}
@@ -289,9 +313,44 @@ const Feed = () => {
                   </div>
                 </div>
               ) : (
-                p.media_type !== "text" && (
-                  <div className="aspect-video border-b-2 border-ink bg-primary" />
-                )
+                <>
+                  {p.media_type === "image" && p.media_path && (
+                    <div className="border-b-2 border-ink">
+                      <img
+                        src={supabase.storage.from("post-media").getPublicUrl(p.media_path).data.publicUrl}
+                        alt="Post media"
+                        className="w-full object-cover max-h-[600px]"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                  {p.media_type === "video" && p.media_path && (
+                    <div className="border-b-2 border-ink bg-black">
+                      <video
+                        src={supabase.storage.from("post-media").getPublicUrl(p.media_path).data.publicUrl}
+                        controls
+                        className="w-full max-h-[500px]"
+                      />
+                    </div>
+                  )}
+                  {p.media_type === "pdf" && p.media_path && (
+                    <div className="border-b-2 border-ink bg-surface px-4 py-3">
+                      <a
+                        href={supabase.storage.from("post-media").getPublicUrl(p.media_path).data.publicUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 border-2 border-ink bg-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-foreground shadow-brutal-sm"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Download PDF
+                      </a>
+                    </div>
+                  )}
+                  {p.media_type !== "text" && !p.media_path && (
+                    <div className="aspect-video border-b-2 border-ink bg-primary/20 flex items-center justify-center text-muted-foreground text-sm">
+                      {mediaIcon[p.media_type]}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="p-4">

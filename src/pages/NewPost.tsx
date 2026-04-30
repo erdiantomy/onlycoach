@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
+import { cn, formatIdr } from "@/lib/utils";
 import { toast } from "sonner";
 import { Image as ImageIcon, FileText, PlayCircle, Type, Upload } from "lucide-react";
 
@@ -96,9 +96,6 @@ const NewPost = () => {
       setSubmitting(false);
     }
   };
-
-  const formatPrice = (cents: number) =>
-    `$${(cents / 100).toFixed(0)}`;
 
   return (
     <AppShell>
@@ -211,7 +208,7 @@ const NewPost = () => {
                     tierId === t.id ? "bg-ink text-ink-foreground" : "bg-surface",
                   )}
                 >
-                  {t.name} · {formatPrice(t.price_cents)}
+                  {t.name} · {formatIdr(t.price_cents)}
                 </button>
               ))}
             </div>

@@ -39,11 +39,11 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 // ---- seed plan: 5 coaches, 10 mentees, tiers, posts, 2 challenges ----
 const COACHES = [
-  { handle: "maya_id",  email: "maya.coach@onlycoach.test",  display: "Maya Lestari",      niche: "Strength",  bio: "Strength coach. 12 years training Indonesian athletes." },
-  { handle: "budi_id",  email: "budi.coach@onlycoach.test",  display: "Budi Santoso",      niche: "Business",  bio: "Solo founder coach. Helping UMKM go from idea to first IDR 100M." },
-  { handle: "aisyah_id",email: "aisyah.coach@onlycoach.test",display: "Aisyah Rahmawati",  niche: "Mindset",   bio: "Habit & performance coach for ambitious creators." },
-  { handle: "rizky_id", email: "rizky.coach@onlycoach.test", display: "Rizky Pratama",     niche: "Endurance", bio: "Marathon coach — first-time runners through ultra athletes." },
-  { handle: "sari_id",  email: "sari.coach@onlycoach.test",  display: "Sari Hidayat",      niche: "Nutrition", bio: "Sports dietitian. Pragmatic, food-first nutrition for Indonesian palates." },
+  { handle: "maya_id",   email: "maya.coach@onlycoach.test",   display: "Maya Lestari",     niche: "Strength",  bio: "Strength coach. 12 years training Indonesian athletes." },
+  { handle: "budi_id",   email: "budi.coach@onlycoach.test",   display: "Budi Santoso",     niche: "Business",  bio: "Solo founder coach. Helping UMKM go from idea to first IDR 100M." },
+  { handle: "aisyah_id", email: "aisyah.coach@onlycoach.test", display: "Aisyah Rahmawati", niche: "Mindset",   bio: "Habit & performance coach for ambitious creators." },
+  { handle: "rizky_id",  email: "rizky.coach@onlycoach.test",  display: "Rizky Pratama",    niche: "Endurance", bio: "Marathon coach — first-time runners through ultra athletes." },
+  { handle: "sari_id",   email: "sari.coach@onlycoach.test",   display: "Sari Hidayat",     niche: "Nutrition", bio: "Sports dietitian. Pragmatic, food-first nutrition for Indonesian palates." },
 ];
 
 const MENTEES = Array.from({ length: 10 }).map((_, i) => ({
@@ -52,22 +52,26 @@ const MENTEES = Array.from({ length: 10 }).map((_, i) => ({
   handle: `fan_${i + 1}`,
 }));
 
+// IDR cents: 149.000, 299.000, 499.000
 const TIER_PRESETS = [
-  { name: "Basic",  price_cents: 14900,  perks: ["Weekly post", "Community access"] },
-  { name: "Pro",    price_cents: 29900,  perks: ["Daily posts", "DM access", "Form-check video"] },
-  { name: "VIP",    price_cents: 49900,  perks: ["Everything in Pro", "Monthly 1:1 call", "Custom plan"] },
+  { name: "Basic", price_cents: 14900,  perks: ["Weekly post", "Community access"] },
+  { name: "Pro",   price_cents: 29900,  perks: ["Daily posts", "DM access", "Form-check video"] },
+  { name: "VIP",   price_cents: 49900,  perks: ["Everything in Pro", "Monthly 1:1 call", "Custom plan"] },
 ];
 
-const POST_BODIES = [
-  "Reminder: jadwal latihan minggu ini sudah dibuka. Cek kalender.",
-  "Free preview — three habits I'd install first if I were starting today.",
-  "Rest day audit: durasi tidur, asupan air, mood. Reply with yours.",
-  "Form-check window opens Friday. Drop your video in DMs.",
-  "Q&A audio is live for VIP — link in your messages.",
+// 4 posts per coach — varied media_type so Feed looks real
+const POST_TEMPLATES = [
+  { body: "Reminder: jadwal latihan minggu ini sudah dibuka. Cek kalender.", media_type: "text" },
+  { body: "Free preview — three habits I'd install first if I were starting today.", media_type: "image" },
+  { body: "Rest day audit: durasi tidur, asupan air, mood. Reply with yours.", media_type: "text" },
+  { body: "Form-check window opens Friday. Drop your video in DMs.", media_type: "video" },
 ];
+
+function dicebearAvatar(seed) {
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+}
 
 async function ensureUser({ email, display, handle, role }) {
-  // create or fetch a user via admin API
   const { data: list, error: listErr } = await supabase.auth.admin.listUsers({ perPage: 200 });
   if (listErr) throw listErr;
   const existing = list.users.find((u) => u.email === email);
@@ -80,7 +84,6 @@ async function ensureUser({ email, display, handle, role }) {
     user_metadata: { display_name: display, handle },
   });
   if (error) throw error;
-  // backfill role if asked
   if (role) {
     await supabase.from("user_roles").upsert({ user_id: data.user.id, role }, { onConflict: "user_id,role" });
   }
@@ -89,6 +92,15 @@ async function ensureUser({ email, display, handle, role }) {
 
 async function seedCoach(coach) {
   const userId = await ensureUser({ ...coach, role: "coach" });
+
+  // backfill avatar_url on the profile row
+  await supabase.from("profiles").upsert({
+    id: userId,
+    handle: coach.handle,
+    display_name: coach.display,
+    bio: coach.bio,
+    avatar_url: dicebearAvatar(coach.display),
+  }, { onConflict: "id" });
 
   await supabase.from("coach_profiles").upsert({
     user_id: userId,
@@ -113,15 +125,15 @@ async function seedCoach(coach) {
     );
   }
 
-  // posts
+  // posts with varied media_type
   const { data: existingPosts } = await supabase
     .from("posts").select("id").eq("coach_id", userId).limit(1);
   if (!existingPosts || existingPosts.length === 0) {
     await supabase.from("posts").insert(
-      POST_BODIES.slice(0, 3).map((body, i) => ({
+      POST_TEMPLATES.map((tpl, i) => ({
         coach_id: userId,
-        body,
-        media_type: "text",
+        body: tpl.body,
+        media_type: tpl.media_type,
         required_tier_id: null,
         like_count: 10 + i * 7,
         comment_count: 2 + i,
@@ -169,6 +181,45 @@ async function seedChallenges(coachIds) {
   }
 }
 
+async function seedCommunityPosts(coachIds) {
+  const { data: existing } = await supabase.from("community_posts").select("id").limit(1);
+  if (existing && existing.length > 0) {
+    console.log("  community_posts already seeded");
+    return;
+  }
+  const posts = [
+    { user_id: coachIds[0], coach_id: coachIds[0], body: "Selamat datang di komunitas! Perkenalkan diri kalian di sini.", is_announcement: true },
+    { user_id: coachIds[0], coach_id: coachIds[0], body: "Tips minggu ini: tidur 7–8 jam adalah program terbaik yang bisa kamu jalankan sekarang.", is_announcement: false },
+    { user_id: coachIds[1], coach_id: coachIds[1], body: "Thread: share satu win bisnis kamu minggu ini, sekecil apapun itu.", is_announcement: false },
+    { user_id: coachIds[2], coach_id: coachIds[2], body: "Challenge harian: tulis 3 hal yang kamu syukuri sebelum tidur. Tiga hari berturut-turut.", is_announcement: false },
+    { user_id: coachIds[3], coach_id: coachIds[3], body: "Race week reminder: taper bukan berarti malas. Percayai proses latihanmu.", is_announcement: true },
+  ];
+  const { error } = await supabase.from("community_posts").insert(posts);
+  if (error) throw error;
+}
+
+async function seedReferralCode(coachId) {
+  const { data: existing } = await supabase
+    .from("referral_codes").select("id").eq("coach_id", coachId).limit(1);
+  if (existing && existing.length > 0) {
+    console.log("  referral code already seeded for first coach");
+    return;
+  }
+  const code = "MAYA10";
+  const { error } = await supabase.from("referral_codes").insert({
+    coach_id: coachId,
+    code,
+    discount_pct: 10,
+    max_uses: 100,
+    uses: 0,
+    is_active: true,
+  });
+  if (error) {
+    // non-fatal — referral_codes table may not exist yet in this environment
+    console.warn("  ⚠ Could not seed referral code:", error.message);
+  }
+}
+
 async function seedSubscriptions(coachIds, menteeIds) {
   const { data: tiers } = await supabase
     .from("subscription_tiers").select("id, coach_id, sort_order");
@@ -181,7 +232,6 @@ async function seedSubscriptions(coachIds, menteeIds) {
   for (const coachId of coachIds) {
     const coachTiers = (byCoach.get(coachId) ?? []).sort((a, b) => a.sort_order - b.sort_order);
     if (coachTiers.length === 0) continue;
-    // each coach gets ~3 random subscribers
     for (let i = 0; i < 3; i++) {
       const mentee = menteeIds[(coachIds.indexOf(coachId) * 3 + i) % menteeIds.length];
       const tier = coachTiers[i % coachTiers.length];
@@ -218,6 +268,12 @@ async function main() {
 
   console.log("Seeding challenges…");
   await seedChallenges(coachIds);
+
+  console.log("Seeding community posts…");
+  await seedCommunityPosts(coachIds);
+
+  console.log("Seeding referral code…");
+  await seedReferralCode(coachIds[0]);
 
   console.log("Done.");
 }

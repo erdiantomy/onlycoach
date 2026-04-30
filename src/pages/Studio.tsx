@@ -1,12 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy } from "lucide-react";
+import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy, X } from "lucide-react";
+import { formatIdr } from "@/lib/utils";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const Studio = () => {
   const { user } = useSession();
+  const queryClient = useQueryClient();
+  const [showTierForm, setShowTierForm] = useState(false);
+  const [tierName, setTierName] = useState("");
+  const [tierPriceIdr, setTierPriceIdr] = useState("");
+  const [tierPerks, setTierPerks] = useState("");
 
   const { data } = useQuery({
     queryKey: ["studio", user?.id],
@@ -54,6 +63,20 @@ const Studio = () => {
     },
   });
 
+  const { data: tiers = [] } = useQuery({
+    queryKey: ["my-tiers", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await supabase
+        .from("subscription_tiers")
+        .select("id, name, price_cents, perks, sort_order")
+        .eq("coach_id", user!.id)
+        .eq("is_active", true)
+        .order("sort_order");
+      return res.data ?? [];
+    },
+  });
+
   const { data: recentPosts = [] } = useQuery({
     queryKey: ["studio-posts", user?.id],
     enabled: !!user,
@@ -68,14 +91,47 @@ const Studio = () => {
     },
   });
 
-  const firstName = (data?.displayName ?? "").split(" ")[0] || "Coach";
+  const createTierMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Not signed in");
+      const priceNum = Math.round(parseFloat(tierPriceIdr));
+      if (isNaN(priceNum) || priceNum <= 0) throw new Error("Enter a valid price in IDR");
+      const perksArr = tierPerks
+        .split("\n")
+        .map((p) => p.trim())
+        .filter(Boolean);
 
-  const formatMrr = (cents: number) =>
-    `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      const { error } = await supabase.from("subscription_tiers").insert({
+        coach_id: user.id,
+        name: tierName.trim(),
+        price_cents: priceNum * 100,
+        perks: perksArr,
+        sort_order: tiers.length,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-tiers", user?.id] });
+      setShowTierForm(false);
+      setTierName("");
+      setTierPriceIdr("");
+      setTierPerks("");
+      toast.success("Tier created!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const handleCreateTier = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tierName.trim()) { toast.error("Tier name is required"); return; }
+    createTierMutation.mutate();
+  };
+
+  const firstName = (data?.displayName ?? "").split(" ")[0] || "Coach";
 
   const stats = [
     { label: "Subscribers", value: (data?.subscriberCount ?? 0).toLocaleString(), icon: Users },
-    { label: "Monthly revenue", value: formatMrr(data?.mrrCents ?? 0), icon: DollarSign },
+    { label: "Monthly revenue", value: formatIdr(data?.mrrCents ?? 0), icon: DollarSign },
     { label: "Posts", value: data?.postCount ?? 0, icon: FileText },
     { label: "Unread DMs", value: "—", icon: MessageCircle },
   ];
@@ -97,6 +153,69 @@ const Studio = () => {
             <Plus className="h-4 w-4" /> New post
           </Link>
         </header>
+
+        {/* Tier creation prompt — critical for new coaches */}
+        {tiers.length === 0 && (
+          <section className="mt-8 brutal-card border-l-4 border-l-primary p-5">
+            <h2 className="font-display text-xl">Create your first subscription tier</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Without tiers, nobody can subscribe to you. Set up at least one tier to start earning.
+            </p>
+
+            {!showTierForm ? (
+              <Button
+                onClick={() => setShowTierForm(true)}
+                className="mt-4 border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Create a tier
+              </Button>
+            ) : (
+              <form onSubmit={handleCreateTier} className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide">New tier</span>
+                  <button type="button" onClick={() => setShowTierForm(false)}>
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <input
+                  value={tierName}
+                  onChange={(e) => setTierName(e.target.value)}
+                  placeholder="Tier name (e.g. Basic, Pro, VIP)"
+                  className="w-full border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none"
+                  required
+                />
+                <input
+                  value={tierPriceIdr}
+                  onChange={(e) => setTierPriceIdr(e.target.value)}
+                  placeholder="Price in IDR (e.g. 149000)"
+                  inputMode="numeric"
+                  className="w-full border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none"
+                  required
+                />
+                <textarea
+                  value={tierPerks}
+                  onChange={(e) => setTierPerks(e.target.value)}
+                  placeholder="Perks, one per line (e.g. Weekly post&#10;Community access)"
+                  rows={3}
+                  className="w-full border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={createTierMutation.isPending}
+                    className="border-2 border-ink bg-accent shadow-brutal-sm"
+                  >
+                    {createTierMutation.isPending ? "Saving…" : "Save tier"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowTierForm(false)}
+                    className="border-2 border-ink bg-surface">
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </section>
+        )}
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((s) => (

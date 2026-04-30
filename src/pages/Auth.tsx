@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Logo } from "@/components/brand/Logo";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -32,34 +31,32 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/feed`,
+            emailRedirectTo: `${window.location.origin}/onboarding`,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
         if (error) throw error;
         toast.success("Account created. Welcome!");
+        navigate("/onboarding", { replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in.");
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Something went wrong");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
   };
 
   const oauth = async (provider: "google" | "apple") => {
-    const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/feed` },
     });
-    if (result.error) {
-      toast.error(result.error.message ?? "Sign-in failed");
-      return;
-    }
-    if (result.redirected) return;
-    navigate("/feed", { replace: true });
+    if (error) toast.error(error.message ?? "Sign-in failed");
   };
 
   const reset = async () => {

@@ -924,6 +924,59 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          coach_id: string
+          code: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          coach_id: string
+          code: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          coach_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      referral_signups: {
+        Row: {
+          converted_at: string | null
+          created_at: string
+          id: string
+          referral_code_id: string
+          referred_user_id: string
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code_id: string
+          referred_user_id: string
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code_id?: string
+          referred_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_signups_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriber_notes: {
         Row: {
           body: string | null
