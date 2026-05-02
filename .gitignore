@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright MCP runtime artifacts (snapshots, console logs)
+.playwright-mcp/
