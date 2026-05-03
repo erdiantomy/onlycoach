@@ -1,16 +1,19 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
-import { formatIdr } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/currency";
 
-const featuredCoaches = [
-  { handle: "maya", name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
-  { handle: "theo", name: "Theo Lindberg", niche: "Mindset · Habits", price: 24, rating: 4.8 },
-  { handle: "ines", name: "Ines Kovač", niche: "Run · Endurance", price: 15, rating: 4.9 },
-  { handle: "diego", name: "Diego Ramos", niche: "Nutrition · Cut", price: 22, rating: 4.7 },
-];
+interface FeaturedCoach {
+  handle: string;
+  display_name: string;
+  niche: string;
+  rating: number;
+  starting_price_cents: number | null;
+}
 
 const Index = () => {
   return (
