@@ -156,8 +156,31 @@ const Payouts = () => {
           </div>
         </section>
 
-        <section className="brutal-card mt-8 p-5">
-          <h2 className="font-display text-xl">Payout account</h2>
+        <section className="brutal-card mt-6 p-5">
+          <div className="flex items-center gap-3">
+            <Wallet className="h-5 w-5" />
+            <h2 className="font-display text-xl">Available balance</h2>
+          </div>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="font-display text-3xl">{formatCurrency(balance)}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Minimum payout: {formatCurrency(MIN_PAYOUT_IDR_CENTS)} · 10% platform fee already deducted
+              </div>
+            </div>
+            <Button
+              disabled={requestPayout.isPending || balance < MIN_PAYOUT_IDR_CENTS || !account?.account_number}
+              onClick={() => requestPayout.mutate()}
+              className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90"
+            >
+              {requestPayout.isPending ? "Requesting…" : "Request payout"}
+            </Button>
+          </div>
+          {!account?.account_number && (
+            <p className="mt-2 text-xs text-destructive">Add your bank details below to enable payouts.</p>
+          )}
+        </section>
+
           {connected ? (
             <div className="mt-4 flex items-center gap-3 border-2 border-ink bg-primary/10 p-4">
               <CheckCircle2 className="h-6 w-6 text-primary" />
