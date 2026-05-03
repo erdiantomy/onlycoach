@@ -1,18 +1,48 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
-import { formatIdr } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/currency";
 
-const featuredCoaches = [
-  { handle: "maya", name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
-  { handle: "theo", name: "Theo Lindberg", niche: "Mindset · Habits", price: 24, rating: 4.8 },
-  { handle: "ines", name: "Ines Kovač", niche: "Run · Endurance", price: 15, rating: 4.9 },
-  { handle: "diego", name: "Diego Ramos", niche: "Nutrition · Cut", price: 22, rating: 4.7 },
-];
+interface FeaturedCoach {
+  handle: string;
+  display_name: string;
+  niche: string;
+  rating: number;
+  starting_price_cents: number | null;
+}
 
 const Index = () => {
+  const { data: featuredCoaches = [] } = useQuery({
+    queryKey: ["featured-coaches"],
+    queryFn: async (): Promise<FeaturedCoach[]> => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("handle, display_name, coach_profiles!inner(niche, rating, is_published), subscription_tiers(price_cents, is_active)")
+        .eq("coach_profiles.is_published", true)
+        .limit(4);
+      type Row = {
+        handle: string;
+        display_name: string;
+        coach_profiles: { niche: string; rating: number; is_published: boolean } | null;
+        subscription_tiers: { price_cents: number; is_active: boolean }[];
+      };
+      return ((data ?? []) as unknown as Row[]).map((r) => {
+        const prices = (r.subscription_tiers ?? []).filter((t) => t.is_active).map((t) => t.price_cents);
+        return {
+          handle: r.handle,
+          display_name: r.display_name,
+          niche: r.coach_profiles?.niche ?? "Coach",
+          rating: r.coach_profiles?.rating ?? 5,
+          starting_price_cents: prices.length > 0 ? Math.min(...prices) : null,
+        };
+      });
+    },
+  });
+
   return (
     <AppShell hideTabBar>
       {/* HERO */}
@@ -80,7 +110,7 @@ const Index = () => {
                 </div>
               </div>
               <button className="mt-4 w-full border-2 border-ink bg-accent py-3 font-display text-sm uppercase tracking-wide text-ink shadow-brutal-sm">
-                Subscribe — {formatIdr(19)}/mo
+                Subscribe — {formatCurrency(1900000, { fromCents: true })}/mo
               </button>
               <button className="mt-2 flex w-full items-center justify-center gap-2 border-2 border-ink bg-surface py-3 font-display text-sm uppercase tracking-wide text-ink">
                 <MessageCircle className="h-4 w-4" /> Message coach
@@ -140,18 +170,22 @@ const Index = () => {
           </div>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featuredCoaches.map((c) => (
-              <article key={c.name} className="brutal-card-sm overflow-hidden">
+              <article key={c.handle} className="brutal-card-sm overflow-hidden">
                 <div className="aspect-[4/5] border-b-2 border-ink bg-primary/90" />
                 <div className="p-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-base">{c.name}</h3>
-                    <span className="text-xs font-semibold">★ {c.rating}</span>
+                    <h3 className="font-display text-base">{c.display_name}</h3>
+                    <span className="text-xs font-semibold">★ {Number(c.rating).toFixed(1)}</span>
                   </div>
                   <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
                     {c.niche}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="font-display text-sm">{formatIdr(c.price)}<span className="text-xs">/mo</span></span>
+                    <span className="font-display text-sm">
+                      {c.starting_price_cents !== null
+                        ? <>{formatCurrency(c.starting_price_cents)}<span className="text-xs">/mo</span></>
+                        : <span className="text-xs text-muted-foreground">Free</span>}
+                    </span>
                     <Link
                       to={`/coach/${c.handle}`}
                       className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"

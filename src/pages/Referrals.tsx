@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
-import { coaches, referrals } from "@/lib/mock";
+import { useSession } from "@/hooks/useSession";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Gift, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import { formatIdr } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 
 const Referrals = () => {
-  const me = coaches[0];
+  const { user } = useSession();
   const [copied, setCopied] = useState(false);
-  const link = `${typeof window !== "undefined" ? window.location.origin : "https://onlycoach.app"}/r/${me.handle}`;
-  const totalEarned = referrals.reduce((s, r) => s + r.earnedToDate, 0);
+  const handle = user?.email?.split("@")[0] ?? "you";
+  const link = `${typeof window !== "undefined" ? window.location.origin : "https://onlycoach.co"}/r/${handle}`;
+  const totalEarned = 0;
+  const referrals: { id: string; coachName: string; joinedAt: string; earnedCents: number }[] = [];
 
   const copy = async () => {
     try {
@@ -25,15 +27,16 @@ const Referrals = () => {
   };
 
   const share = async () => {
-    if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (data: ShareData) => Promise<void> }).share) {
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+    if (typeof navigator !== "undefined" && nav.share) {
       try {
-        await (navigator as Navigator & { share: (data: ShareData) => Promise<void> }).share({
+        await nav.share({
           title: "Coach with me on OnlyCoach",
           text: "Join OnlyCoach and start earning from your subscribers.",
           url: link,
         });
       } catch {
-        // user cancelled
+        /* user cancelled */
       }
     } else {
       copy();
@@ -59,12 +62,10 @@ const Referrals = () => {
             <input readOnly value={link}
               className="flex-1 border-2 border-ink bg-surface px-3 py-2 font-mono text-xs focus:outline-none" />
             <div className="flex gap-2">
-              <Button onClick={copy} variant="outline"
-                className="border-2 border-ink bg-surface">
+              <Button onClick={copy} variant="outline" className="border-2 border-ink bg-surface">
                 <Copy className="mr-1.5 h-4 w-4" /> {copied ? "Copied" : "Copy"}
               </Button>
-              <Button onClick={share}
-                className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
+              <Button onClick={share} className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90">
                 <Share2 className="mr-1.5 h-4 w-4" /> Share
               </Button>
             </div>
@@ -78,39 +79,16 @@ const Referrals = () => {
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Earned to date</div>
-            <div className="mt-2 font-display text-2xl">{formatIdr(totalEarned)}</div>
+            <div className="mt-2 font-display text-2xl">{formatCurrency(totalEarned)}</div>
           </div>
         </section>
 
         <section className="mt-8">
           <h2 className="font-display text-xl">Referrals</h2>
-          {referrals.length === 0 ? (
-            <div className="brutal-card mt-4 p-10 text-center">
-              <p className="font-display text-xl">No referrals yet.</p>
-              <p className="mt-2 text-sm text-muted-foreground">Share your link to start earning.</p>
-            </div>
-          ) : (
-            <div className="brutal-card mt-4 overflow-x-auto">
-              <table className="w-full min-w-[360px] text-sm">
-                <thead className="bg-surface text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="border-b-2 border-ink px-4 py-3">Coach</th>
-                    <th className="border-b-2 border-ink px-4 py-3">Joined</th>
-                    <th className="border-b-2 border-ink px-4 py-3">Earned</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {referrals.map((r) => (
-                    <tr key={r.id} className="border-b-2 border-ink/10 last:border-0">
-                      <td className="px-4 py-3 font-semibold">{r.coachName}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{r.joinedAt}</td>
-                      <td className="px-4 py-3 font-semibold">{formatIdr(r.earnedToDate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="brutal-card mt-4 p-10 text-center">
+            <p className="font-display text-xl">No referrals yet.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Share your link to start earning.</p>
+          </div>
         </section>
       </div>
     </AppShell>

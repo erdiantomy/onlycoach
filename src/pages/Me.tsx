@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, LogOut, Settings, Sparkles } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/currency";
 
 const Me = () => {
   const { user, loading, signOut } = useSession();
@@ -69,8 +70,7 @@ const Me = () => {
     },
   });
 
-  const formatPrice = (cents: number) =>
-    `$${(cents / 100).toFixed(0)}`;
+  const formatPrice = (cents: number) => formatCurrency(cents);
 
   return (
     <AppShell>
