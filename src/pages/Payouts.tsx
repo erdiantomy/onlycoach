@@ -52,6 +52,34 @@ const Payouts = () => {
     },
   });
 
+  const { data: balance = 0, refetch: refetchBalance } = useQuery<number>({
+    queryKey: ["coach-balance", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("coach_balances")
+        .select("available_idr_cents")
+        .eq("coach_id", user!.id)
+        .maybeSingle();
+      return Number(data?.available_idr_cents ?? 0);
+    },
+  });
+
+  const requestPayout = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("request-xendit-payout", { body: {} });
+      if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Payout requested — processing");
+      queryClient.invalidateQueries({ queryKey: ["payouts", user?.id] });
+      refetchBalance();
+    },
+    onError: (e: Error) => toast.error(e.message || "Couldn't request payout"),
+  });
+
   const scheduleMutation = useMutation({
     mutationFn: async (schedule: Schedule) => {
       if (!user) throw new Error("Not signed in");
