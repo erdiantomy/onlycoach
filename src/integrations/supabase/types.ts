@@ -717,33 +717,39 @@ export type Database = {
           coach_id: string
           created_at: string
           currency: string
+          failure_reason: string | null
           id: string
           notes: string | null
           paid_at: string | null
           requested_at: string
           status: string
+          xendit_disbursement_id: string | null
         }
         Insert: {
           amount_cents: number
           coach_id: string
           created_at?: string
           currency?: string
+          failure_reason?: string | null
           id?: string
           notes?: string | null
           paid_at?: string | null
           requested_at?: string
           status?: string
+          xendit_disbursement_id?: string | null
         }
         Update: {
           amount_cents?: number
           coach_id?: string
           created_at?: string
           currency?: string
+          failure_reason?: string | null
           id?: string
           notes?: string | null
           paid_at?: string | null
           requested_at?: string
           status?: string
+          xendit_disbursement_id?: string | null
         }
         Relationships: []
       }
@@ -977,6 +983,51 @@ export type Database = {
         }
         Relationships: []
       }
+      revenue_events: {
+        Row: {
+          coach_id: string
+          coach_net_idr_cents: number
+          created_at: string
+          external_ref: string | null
+          gross_idr_cents: number
+          id: string
+          mentee_id: string | null
+          occurred_at: string
+          payment_provider: string
+          platform_fee_idr_cents: number
+          source: string
+          source_ref_id: string | null
+        }
+        Insert: {
+          coach_id: string
+          coach_net_idr_cents: number
+          created_at?: string
+          external_ref?: string | null
+          gross_idr_cents: number
+          id?: string
+          mentee_id?: string | null
+          occurred_at?: string
+          payment_provider?: string
+          platform_fee_idr_cents: number
+          source: string
+          source_ref_id?: string | null
+        }
+        Update: {
+          coach_id?: string
+          coach_net_idr_cents?: number
+          created_at?: string
+          external_ref?: string | null
+          gross_idr_cents?: number
+          id?: string
+          mentee_id?: string | null
+          occurred_at?: string
+          payment_provider?: string
+          platform_fee_idr_cents?: number
+          source?: string
+          source_ref_id?: string | null
+        }
+        Relationships: []
+      }
       subscriber_notes: {
         Row: {
           body: string | null
@@ -1176,7 +1227,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      coach_balances: {
+        Row: {
+          available_idr_cents: number | null
+          coach_id: string | null
+          lifetime_idr_cents: number | null
+          paid_idr_cents: number | null
+        }
+        Insert: {
+          available_idr_cents?: never
+          coach_id?: string | null
+          lifetime_idr_cents?: never
+          paid_idr_cents?: never
+        }
+        Update: {
+          available_idr_cents?: never
+          coach_id?: string | null
+          lifetime_idr_cents?: never
+          paid_idr_cents?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_email: {
@@ -1202,6 +1273,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      min_payout_idr_cents: { Args: never; Returns: number }
       move_to_dlq: {
         Args: {
           dlq_name: string
