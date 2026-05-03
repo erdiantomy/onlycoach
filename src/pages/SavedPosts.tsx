@@ -1,13 +1,50 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
-import { posts, findCoach } from "@/lib/mock";
 import { useSavedPosts } from "@/hooks/useSavedPosts";
+import { useSession } from "@/hooks/useSession";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Bookmark, BookmarkX, MessageSquare, Heart } from "lucide-react";
 import { toast } from "sonner";
 
+interface SavedRow {
+  id: string;
+  body: string;
+  created_at: string;
+  like_count: number;
+  comment_count: number;
+  coach_id: string;
+  coach_name: string;
+  coach_handle: string;
+}
+
 const SavedPosts = () => {
-  const { saved, toggle } = useSavedPosts();
-  const items = posts.filter((p) => saved.includes(p.id));
+  const { user } = useSession();
+  const { saved, toggle } = useSavedPosts(user?.id);
+
+  const { data: items = [] } = useQuery({
+    queryKey: ["saved-posts", saved],
+    enabled: saved.length > 0,
+    queryFn: async (): Promise<SavedRow[]> => {
+      const { data: posts } = await supabase
+        .from("posts")
+        .select("id, body, created_at, like_count, comment_count, coach_id")
+        .in("id", saved);
+      const rows = posts ?? [];
+      if (rows.length === 0) return [];
+      const coachIds = [...new Set(rows.map((p) => p.coach_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, handle")
+        .in("id", coachIds);
+      const pm = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return rows.map((p) => ({
+        ...p,
+        coach_name: pm.get(p.coach_id)?.display_name ?? "Coach",
+        coach_handle: pm.get(p.coach_id)?.handle ?? "",
+      }));
+    },
+  });
 
   return (
     <AppShell>
@@ -35,30 +72,27 @@ const SavedPosts = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {items.map((p) => {
-              const coach = findCoach(p.coachId)!;
-              return (
-                <article key={p.id} className="brutal-card-sm p-4">
-                  <header className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
-                    <Link to={`/coach/${coach.handle}`} className="font-semibold text-foreground hover:underline">
-                      {coach.name}
-                    </Link>
-                    <span>{p.createdAt} ago</span>
-                  </header>
-                  <p className="mt-2">{p.body}</p>
-                  <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1"><Heart className="h-4 w-4" /> {p.likes}</span>
-                    <span className="inline-flex items-center gap-1"><MessageSquare className="h-4 w-4" /> {p.comments}</span>
-                    <button
-                      onClick={() => { toggle(p.id); toast.success("Removed from saved"); }}
-                      className="ml-auto inline-flex items-center gap-1 text-primary hover:text-foreground"
-                    >
-                      <Bookmark className="h-4 w-4 fill-current" />
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+            {items.map((p) => (
+              <article key={p.id} className="brutal-card-sm p-4">
+                <header className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
+                  <Link to={`/coach/${p.coach_handle}`} className="font-semibold text-foreground hover:underline">
+                    {p.coach_name}
+                  </Link>
+                  <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                </header>
+                <p className="mt-2">{p.body}</p>
+                <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1"><Heart className="h-4 w-4" /> {p.like_count}</span>
+                  <span className="inline-flex items-center gap-1"><MessageSquare className="h-4 w-4" /> {p.comment_count}</span>
+                  <button
+                    onClick={() => { toggle(p.id); toast.success("Removed from saved"); }}
+                    className="ml-auto inline-flex items-center gap-1 text-primary hover:text-foreground"
+                  >
+                    <Bookmark className="h-4 w-4 fill-current" />
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </div>
