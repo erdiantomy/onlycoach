@@ -664,6 +664,53 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          email_booking_reminder: boolean
+          email_marketing: boolean
+          email_new_message: boolean
+          email_new_subscriber: boolean
+          email_payout: boolean
+          push_booking_reminder: boolean
+          push_new_message: boolean
+          push_new_subscriber: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_booking_reminder?: boolean
+          email_marketing?: boolean
+          email_new_message?: boolean
+          email_new_subscriber?: boolean
+          email_payout?: boolean
+          push_booking_reminder?: boolean
+          push_new_message?: boolean
+          push_new_subscriber?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_booking_reminder?: boolean
+          email_marketing?: boolean
+          email_new_message?: boolean
+          email_new_subscriber?: boolean
+          email_payout?: boolean
+          push_booking_reminder?: boolean
+          push_new_message?: boolean
+          push_new_subscriber?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payouts: {
         Row: {
           amount_cents: number
