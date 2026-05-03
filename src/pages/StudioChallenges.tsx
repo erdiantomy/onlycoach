@@ -173,7 +173,7 @@ const StudioChallenges = () => {
                   <div className="mt-2 flex flex-wrap gap-3 text-xs uppercase tracking-wide text-muted-foreground">
                     <span>{c.duration_days}d</span>
                     <span>{c.max_participants ?? "∞"} max</span>
-                    <span>{formatIdr(c.price_cents / 1000)}</span>
+                    <span>{formatCurrency(c.price_cents)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -218,7 +218,7 @@ const StudioChallenges = () => {
                   <input type="number" min={0} value={draft.price}
                     onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
                     className="w-full border-2 border-ink bg-surface px-3 py-2 text-sm focus:outline-none" />
-                  <p className="mt-1 text-xs text-muted-foreground">{formatIdr(draft.price)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatCurrency(draft.price, { fromCents: false })}</p>
                 </Field>
                 <Field label="Duration (days)">
                   <input type="number" min={1} value={draft.durationDays}

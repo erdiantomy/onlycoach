@@ -116,7 +116,7 @@ const Challenges = () => {
                 <Link key={ch.id} to={`/challenges/${ch.id}`} className="brutal-card-sm group flex flex-col p-5 hover:bg-accent/20">
                   <div className="flex items-center justify-between">
                     <span className="brutal-tag">{ch.status}</span>
-                    <span className="font-display text-lg">{formatIdr(ch.price_cents / 100)}</span>
+                    <span className="font-display text-lg">{formatCurrency(ch.price_cents)}</span>
                   </div>
                   <h2 className="mt-3 font-display text-xl group-hover:underline">{ch.title}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">by {ch.coach_name ?? "Coach"}</p>
