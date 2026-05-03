@@ -16,6 +16,33 @@ interface FeaturedCoach {
 }
 
 const Index = () => {
+  const { data: featuredCoaches = [] } = useQuery({
+    queryKey: ["featured-coaches"],
+    queryFn: async (): Promise<FeaturedCoach[]> => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("handle, display_name, coach_profiles!inner(niche, rating, is_published), subscription_tiers(price_cents, is_active)")
+        .eq("coach_profiles.is_published", true)
+        .limit(4);
+      type Row = {
+        handle: string;
+        display_name: string;
+        coach_profiles: { niche: string; rating: number; is_published: boolean } | null;
+        subscription_tiers: { price_cents: number; is_active: boolean }[];
+      };
+      return ((data ?? []) as unknown as Row[]).map((r) => {
+        const prices = (r.subscription_tiers ?? []).filter((t) => t.is_active).map((t) => t.price_cents);
+        return {
+          handle: r.handle,
+          display_name: r.display_name,
+          niche: r.coach_profiles?.niche ?? "Coach",
+          rating: r.coach_profiles?.rating ?? 5,
+          starting_price_cents: prices.length > 0 ? Math.min(...prices) : null,
+        };
+      });
+    },
+  });
+
   return (
     <AppShell hideTabBar>
       {/* HERO */}
