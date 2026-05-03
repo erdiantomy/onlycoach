@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Gift, Trophy } from "lucide-react";
+import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 const Studio = () => {
   const { user } = useSession();
@@ -70,8 +71,7 @@ const Studio = () => {
 
   const firstName = (data?.displayName ?? "").split(" ")[0] || "Coach";
 
-  const formatMrr = (cents: number) =>
-    `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const formatMrr = (cents: number) => formatCurrency(cents);
 
   const stats = [
     { label: "Subscribers", value: (data?.subscriberCount ?? 0).toLocaleString(), icon: Users },
@@ -112,13 +112,11 @@ const Studio = () => {
 
         <section className="mt-10">
           <h2 className="font-display text-2xl">Manage</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { to: "/studio/analytics", label: "Analytics", icon: BarChart3 },
               { to: "/studio/subscribers", label: "Subscribers", icon: Users },
               { to: "/studio/payouts", label: "Payouts", icon: Banknote },
-              { to: "/studio/referrals", label: "Referrals", icon: Gift },
-              { to: "/studio/challenges", label: "Challenges", icon: Trophy },
               { to: "/studio/broadcast", label: "Broadcast", icon: MessageCircle },
             ].map(({ to, label, icon: Icon }) => (
               <Link
