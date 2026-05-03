@@ -300,6 +300,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
 
+    // ─── Branch C: Disbursement (payouts) ──────────────────────────────
+    if (evType === "disbursement.completed" || evType === "disbursement.failed" || event.status === "COMPLETED" || event.status === "FAILED") {
+      const dId = event.id ?? plan.id;
+      const isPaid = (evType.includes("completed") || event.status === "COMPLETED");
+      if (dId) {
+        await admin.from("payouts")
+          .update({
+            status: isPaid ? "paid" : "failed",
+            paid_at: isPaid ? new Date().toISOString() : null,
+            failure_reason: isPaid ? null : (event.failure_code ?? "unknown"),
+          })
+          .eq("xendit_disbursement_id", dId);
+        const { data: p } = await admin.from("payouts").select("coach_id, amount_cents").eq("xendit_disbursement_id", dId).maybeSingle();
+        if (p) {
+          const { data: cu } = await admin.auth.admin.getUserById(p.coach_id);
+          if (cu?.user?.email && await prefAllows(admin, p.coach_id, "email_payout")) {
+            await enqueueEmail(admin, cu.user.email,
+              isPaid ? "Payout paid" : "Payout failed",
+              isPaid
+                ? `<p>Your payout of Rp ${Math.round(p.amount_cents/100).toLocaleString("id-ID")} has been paid.</p>`
+                : `<p>Your payout failed. Please review your bank details.</p>`);
+          }
+        }
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }
+
     console.log("xendit-webhook: unhandled", evType);
     return new Response(JSON.stringify({ ok: true, ignored: evType }), { status: 200 });
   } catch (e) {
