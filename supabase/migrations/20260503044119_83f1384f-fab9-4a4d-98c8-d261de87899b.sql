@@ -1,0 +1,1 @@
+alter view public.coach_balances set (security_invoker = on);
