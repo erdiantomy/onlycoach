@@ -35,6 +35,7 @@ import SavedPosts from "./pages/SavedPosts.tsx";
 import MenteeProfile from "./pages/MenteeProfile.tsx";
 import ProfileRedirect from "./pages/ProfileRedirect.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import { SubscribeRedirect, BookRedirect, AccountBillingRedirect } from "./components/CheckoutRedirects";
 import RequireAdmin from "./components/auth/RequireAdmin.tsx";
 import AdminOverview from "./pages/admin/AdminOverview.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
