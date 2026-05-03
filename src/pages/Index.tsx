@@ -110,7 +110,7 @@ const Index = () => {
                 </div>
               </div>
               <button className="mt-4 w-full border-2 border-ink bg-accent py-3 font-display text-sm uppercase tracking-wide text-ink shadow-brutal-sm">
-                Subscribe — {formatIdr(19)}/mo
+                Subscribe — {formatCurrency(1900000, { fromCents: true })}/mo
               </button>
               <button className="mt-2 flex w-full items-center justify-center gap-2 border-2 border-ink bg-surface py-3 font-display text-sm uppercase tracking-wide text-ink">
                 <MessageCircle className="h-4 w-4" /> Message coach
