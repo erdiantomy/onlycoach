@@ -257,7 +257,34 @@ Deno.serve(async (req) => {
             if (error && (error as any).code !== "23505") console.error("convo insert", error);
           });
         }
-        // TODO: welcome email — Resend connector when configured.
+        // Welcome emails (first activation only)
+        const { data: tier } = await admin.from("subscription_tiers").select("name").eq("id", meta.tier_id).maybeSingle();
+        const { data: menteeU } = await admin.auth.admin.getUserById(meta.mentee_id);
+        const { data: coachU } = await admin.auth.admin.getUserById(meta.coach_id);
+        const { data: coachP } = await admin.from("profiles").select("display_name").eq("id", meta.coach_id).maybeSingle();
+        if (menteeU?.user?.email && await prefAllows(admin, meta.mentee_id, "email_new_subscriber")) {
+          await enqueueEmail(admin, menteeU.user.email, `Welcome to ${coachP?.display_name ?? "your coach"}'s ${tier?.name ?? "tier"}`,
+            `<h2>You're in!</h2><p>You've subscribed to ${coachP?.display_name ?? "your coach"} on the <strong>${tier?.name}</strong> tier.</p>`);
+        }
+        if (coachU?.user?.email && await prefAllows(admin, meta.coach_id, "email_new_subscriber")) {
+          await enqueueEmail(admin, coachU.user.email, `🎉 New subscriber on ${tier?.name ?? "your tier"}`,
+            `<p>You have a new subscriber on the <strong>${tier?.name}</strong> tier.</p>`);
+        }
+      }
+
+      // Record revenue on EVERY successful cycle (initial + renewals).
+      // Use the cycle/event id as external_ref so retries dedupe.
+      const cycleRef = plan.cycle_id ?? plan.last_payment_id ?? `${planId}_${event.created ?? Date.now()}`;
+      const cycleAmountIdr = plan.amount ?? plan.last_payment_amount;
+      if (cycleAmountIdr) {
+        await recordRevenue(admin, {
+          coach_id: meta.coach_id,
+          mentee_id: meta.mentee_id,
+          source: "subscription",
+          source_ref_id: existing?.id,
+          gross_idr_rupiah: Number(cycleAmountIdr),
+          external_ref: String(cycleRef),
+        });
       }
 
       return new Response(JSON.stringify({ ok: true, first: isFirstActivation }), { status: 200 });
