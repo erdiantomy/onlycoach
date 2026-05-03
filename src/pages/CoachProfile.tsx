@@ -6,7 +6,7 @@ import { Check, Lock, MessageCircle, Star, Users, Calendar, Trophy } from "lucid
 import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
 import { startSubscriptionCheckout, changeSubscription, cancelSubscription, OfflineError, isCheckoutBlockedOnDevice } from "@/lib/checkout";
-import { formatIdr } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { OfflineBoundary } from "@/components/OfflineBoundary";
 import { toast } from "sonner";

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, ArrowLeft, Lock, FileText, Video, Headphones, ClipboardList } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
-import { formatIdr } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NotFound from "./NotFound";
