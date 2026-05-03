@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConnectedAccounts } from "@/components/auth/ConnectedAccounts";
 import { useI18n } from "@/lib/i18n";
