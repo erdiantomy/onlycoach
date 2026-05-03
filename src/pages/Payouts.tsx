@@ -181,6 +181,8 @@ const Payouts = () => {
           )}
         </section>
 
+        <section className="brutal-card mt-8 p-5">
+          <h2 className="font-display text-xl">Payout account</h2>
           {connected ? (
             <div className="mt-4 flex items-center gap-3 border-2 border-ink bg-primary/10 p-4">
               <CheckCircle2 className="h-6 w-6 text-primary" />
