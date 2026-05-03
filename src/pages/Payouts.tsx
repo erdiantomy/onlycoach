@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Banknote, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Banknote, CheckCircle2, Clock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/integrations/supabase/types";
+
+const MIN_PAYOUT_IDR_CENTS = 25_000_000; // Rp 250.000
 
 type PayoutAccount = Database["public"]["Tables"]["coach_payout_accounts"]["Row"];
 type Payout = Database["public"]["Tables"]["payouts"]["Row"];
@@ -48,6 +50,34 @@ const Payouts = () => {
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  const { data: balance = 0, refetch: refetchBalance } = useQuery<number>({
+    queryKey: ["coach-balance", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("coach_balances")
+        .select("available_idr_cents")
+        .eq("coach_id", user!.id)
+        .maybeSingle();
+      return Number(data?.available_idr_cents ?? 0);
+    },
+  });
+
+  const requestPayout = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("request-xendit-payout", { body: {} });
+      if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Payout requested — processing");
+      queryClient.invalidateQueries({ queryKey: ["payouts", user?.id] });
+      refetchBalance();
+    },
+    onError: (e: Error) => toast.error(e.message || "Couldn't request payout"),
   });
 
   const scheduleMutation = useMutation({
@@ -124,6 +154,31 @@ const Payouts = () => {
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Schedule</div>
             <div className="mt-2 font-display text-2xl capitalize">{currentSchedule}</div>
           </div>
+        </section>
+
+        <section className="brutal-card mt-6 p-5">
+          <div className="flex items-center gap-3">
+            <Wallet className="h-5 w-5" />
+            <h2 className="font-display text-xl">Available balance</h2>
+          </div>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="font-display text-3xl">{formatCurrency(balance)}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Minimum payout: {formatCurrency(MIN_PAYOUT_IDR_CENTS)} · 10% platform fee already deducted
+              </div>
+            </div>
+            <Button
+              disabled={requestPayout.isPending || balance < MIN_PAYOUT_IDR_CENTS || !account?.account_number}
+              onClick={() => requestPayout.mutate()}
+              className="border-2 border-ink bg-ink text-ink-foreground shadow-brutal-sm hover:bg-ink/90"
+            >
+              {requestPayout.isPending ? "Requesting…" : "Request payout"}
+            </Button>
+          </div>
+          {!account?.account_number && (
+            <p className="mt-2 text-xs text-destructive">Add your bank details below to enable payouts.</p>
+          )}
         </section>
 
         <section className="brutal-card mt-8 p-5">
