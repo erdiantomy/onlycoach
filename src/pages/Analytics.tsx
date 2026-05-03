@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Eye } from "lucide-react";
-import { cn, formatIdr } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useQuery } from "@tanstack/react-query";
@@ -164,7 +165,7 @@ const Analytics = () => {
         </header>
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Revenue" value={formatIdr(totals.revenue)} icon={DollarSign} />
+          <StatCard label="Revenue" value={formatCurrency(totals.revenue, { fromCents: false })} icon={DollarSign} />
           <StatCard label="New subscribers" value={totals.newSubs.toLocaleString()} icon={TrendingUp} />
           <StatCard label="Churn rate" value={`${churnRate}%`} icon={TrendingDown} />
           <StatCard label="Content views" value={totals.views.toLocaleString()} icon={Eye} />
@@ -190,7 +191,7 @@ const Analytics = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                   <Tooltip
-                    formatter={(value: number) => [formatIdr(value), "Revenue"]}
+                    formatter={(value: number) => [formatCurrency(value, { fromCents: false }), "Revenue"]}
                     contentStyle={{ border: "2px solid hsl(var(--ink))", borderRadius: 0, background: "hsl(var(--surface))" }}
                   />
                   <Area
@@ -217,7 +218,7 @@ const Analytics = () => {
                   <div key={t.id}>
                     <div className="flex items-baseline justify-between text-sm">
                       <span className="font-semibold">{t.name}</span>
-                      <span className="text-muted-foreground">{formatIdr(t.revenue)} · {t.sub_count} subs</span>
+                      <span className="text-muted-foreground">{formatCurrency(t.revenue, { fromCents: false })} · {t.sub_count} subs</span>
                     </div>
                     <div className="mt-1 h-2 w-full border-2 border-ink bg-surface">
                       <div

@@ -4,7 +4,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Banknote, CheckCircle2, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { cn, formatIdr } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -113,11 +114,11 @@ const Payouts = () => {
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Lifetime earned</div>
-            <div className="mt-2 font-display text-xl">{formatIdr(totalEarned / 100)}</div>
+            <div className="mt-2 font-display text-xl">{formatCurrency(totalEarned)}</div>
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Pending</div>
-            <div className="mt-2 font-display text-xl">{formatIdr(pendingAmount / 100)}</div>
+            <div className="mt-2 font-display text-xl">{formatCurrency(pendingAmount)}</div>
           </div>
           <div className="brutal-card-sm p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Schedule</div>
@@ -197,7 +198,7 @@ const Payouts = () => {
                   {payoutHistory.map((p) => (
                     <tr key={p.id} className="border-b-2 border-ink/10 last:border-0">
                       <td className="px-4 py-3">{new Date(p.created_at).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 font-semibold">{formatIdr(p.amount_cents / 100)}</td>
+                      <td className="px-4 py-3 font-semibold">{formatCurrency(p.amount_cents)}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1 text-xs uppercase tracking-wide">
                           {p.status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : <Clock className="h-3.5 w-3.5" />}

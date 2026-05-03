@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote } from "lucide-react";
+import { DollarSign, Plus, Users, FileText, MessageCircle, BarChart3, Banknote, Tag, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
 const Studio = () => {
@@ -114,6 +114,8 @@ const Studio = () => {
           <h2 className="font-display text-2xl">Manage</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
+              { to: "/studio/tiers", label: "Tiers", icon: Tag },
+              { to: "/studio/availability", label: "Availability", icon: Calendar },
               { to: "/studio/analytics", label: "Analytics", icon: BarChart3 },
               { to: "/studio/subscribers", label: "Subscribers", icon: Users },
               { to: "/studio/payouts", label: "Payouts", icon: Banknote },

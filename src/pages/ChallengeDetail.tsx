@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, ArrowLeft, Lock, FileText, Video, Headphones, ClipboardList } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
-import { formatIdr } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NotFound from "./NotFound";
@@ -185,7 +185,7 @@ const ChallengeDetail = () => {
               </Link>
             )}
           </div>
-          <div className="font-display text-2xl">{formatIdr(priceDollars)}</div>
+          <div className="font-display text-2xl">{formatCurrency(challenge.price_cents)}</div>
         </header>
 
         <div className="mt-6 grid gap-8 md:grid-cols-[1fr_320px]">
@@ -256,7 +256,7 @@ const ChallengeDetail = () => {
                   ? "Enrolled — see you Day 1"
                   : enrolling
                     ? "Enrolling…"
-                    : `Enroll — ${formatIdr(priceDollars)}`}
+                    : `Enroll — ${formatCurrency(challenge.price_cents)}`}
               </Button>
             </div>
           </aside>

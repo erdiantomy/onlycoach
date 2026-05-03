@@ -6,7 +6,7 @@ import { Check, Lock, MessageCircle, Star, Users, Calendar, Trophy } from "lucid
 import NotFound from "./NotFound";
 import { useSession } from "@/hooks/useSession";
 import { startSubscriptionCheckout, changeSubscription, cancelSubscription, OfflineError, isCheckoutBlockedOnDevice } from "@/lib/checkout";
-import { formatIdr } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { OfflineBoundary } from "@/components/OfflineBoundary";
 import { toast } from "sonner";
@@ -349,7 +349,7 @@ const CoachProfile = () => {
                       <article className="brutal-card-sm p-4 hover:bg-accent/20">
                         <div className="flex items-center justify-between">
                           <span className="brutal-tag">{ch.status}</span>
-                          <span className="font-display text-lg">{formatIdr(ch.price_cents / 100)}</span>
+                          <span className="font-display text-lg">{formatCurrency(ch.price_cents)}</span>
                         </div>
                         <h3 className="mt-2 font-display text-xl">{ch.title}</h3>
                         {ch.description && (
@@ -398,7 +398,7 @@ const CoachProfile = () => {
                         <div className="flex items-baseline justify-between">
                           <span className="font-display text-lg">{t.name}</span>
                           <span className="font-display text-lg">
-                            {formatIdr(t.price_cents / 100)}<span className="text-xs">/mo</span>
+                            {formatCurrency(t.price_cents)}<span className="text-xs">/mo</span>
                           </span>
                         </div>
                         {t.perks.length > 0 && (
