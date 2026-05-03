@@ -35,6 +35,7 @@ import SavedPosts from "./pages/SavedPosts.tsx";
 import MenteeProfile from "./pages/MenteeProfile.tsx";
 import ProfileRedirect from "./pages/ProfileRedirect.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import { SubscribeRedirect, BookRedirect, AccountBillingRedirect } from "./components/CheckoutRedirects";
 import RequireAdmin from "./components/auth/RequireAdmin.tsx";
 import AdminOverview from "./pages/admin/AdminOverview.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
@@ -96,6 +97,9 @@ const App = () => (
           <Route path="/settings/billing" element={<RequireAuth><Billing /></RequireAuth>} />
           <Route path="/settings/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
           <Route path="/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
+          <Route path="/subscribe/:tier_id" element={<SubscribeRedirect />} />
+          <Route path="/book/:slot_id" element={<BookRedirect />} />
+          <Route path="/account/billing" element={<AccountBillingRedirect />} />
 
           <Route path="/admin" element={<RequireAdmin><AdminOverview /></RequireAdmin>} />
           <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />

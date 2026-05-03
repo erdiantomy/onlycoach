@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!tier) return json({ error: "Tier not found" }, 404);
 
-    const idrAmount = tier.price_idr_cents ?? usdCentsToIdr(tier.price_cents);
+    // price_cents stores IDR Rupiah × 100. Xendit expects whole Rupiah.
+    const idrAmount = Math.round((tier.price_idr_cents ?? tier.price_cents) / 100);
     const origin = req.headers.get("origin") ?? "https://example.com";
 
     // Get or create Xendit customer

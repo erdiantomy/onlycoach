@@ -1,9 +1,49 @@
-// Xendit webhook handler — invoice.paid, recurring.* events.
-// HARDENED: idempotent at three layers
-//   1. Event-level dedup via processed_webhook_events table (atomic insert)
-//   2. Booking unique index on xendit_invoice_id (DB rejects duplicates)
-//   3. Subscription unique index on xendit_recurring_plan_id (lookup-then-update)
+// Xendit webhook handler — invoice.paid, recurring.*, disbursement.* events.
+// HARDENED: idempotent at three layers + revenue ledger + email notifications.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+
+const PLATFORM_FEE_BPS = 1000; // 10%
+
+async function recordRevenue(admin: any, args: {
+  coach_id: string; mentee_id?: string;
+  source: "subscription" | "booking";
+  source_ref_id?: string;
+  gross_idr_rupiah: number;
+  external_ref: string;
+}) {
+  const gross = Math.round(args.gross_idr_rupiah * 100); // store as IDR×100
+  const fee = Math.round((gross * PLATFORM_FEE_BPS) / 10000);
+  const net = gross - fee;
+  const { error } = await admin.from("revenue_events").insert({
+    coach_id: args.coach_id,
+    mentee_id: args.mentee_id,
+    source: args.source,
+    source_ref_id: args.source_ref_id,
+    gross_idr_cents: gross,
+    platform_fee_idr_cents: fee,
+    coach_net_idr_cents: net,
+    payment_provider: "xendit",
+    external_ref: args.external_ref,
+  });
+  if (error && (error as any).code !== "23505") console.error("revenue insert", error);
+}
+
+async function prefAllows(admin: any, user_id: string, key: string): Promise<boolean> {
+  const { data } = await admin.from("notification_preferences").select(key).eq("user_id", user_id).maybeSingle();
+  if (!data) return true; // default-on if no row
+  return (data as any)[key] !== false;
+}
+
+async function enqueueEmail(admin: any, to: string, subject: string, html: string) {
+  try {
+    await admin.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: { to, subject, html, purpose: "transactional" },
+    });
+  } catch (e) {
+    console.warn("enqueue_email failed:", (e as Error).message);
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -90,6 +130,32 @@ Deno.serve(async (req) => {
       if (!slot.is_booked) {
         await admin.from("availability_slots").update({ is_booked: true }).eq("id", m.slot_id);
       }
+
+      // Revenue ledger (slot.price_cents is IDR×100 → divide by 100 for Rupiah)
+      await recordRevenue(admin, {
+        coach_id: m.coach_id,
+        mentee_id: m.mentee_id,
+        source: "booking",
+        source_ref_id: m.slot_id,
+        gross_idr_rupiah: Math.round(slot.price_cents / 100),
+        external_ref: invoiceId,
+      });
+
+      // Emails
+      const { data: menteeUser } = await admin.auth.admin.getUserById(m.mentee_id);
+      const { data: coachUser } = await admin.auth.admin.getUserById(m.coach_id);
+      const when = new Date(slot.starts_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      if (menteeUser?.user?.email && await prefAllows(admin, m.mentee_id, "email_booking_reminder")) {
+        await enqueueEmail(admin, menteeUser.user.email,
+          `Booking confirmed — ${when}`,
+          `<h2>Your session is booked</h2><p>${when} (Jakarta time) · ${slot.duration_min} min.</p><p><a href="https://onlycoach.co/sessions">View in OnlyCoach</a></p>`);
+      }
+      if (coachUser?.user?.email && await prefAllows(admin, m.coach_id, "email_booking_reminder")) {
+        await enqueueEmail(admin, coachUser.user.email,
+          `New booking — ${when}`,
+          `<h2>You have a new session</h2><p>${when} (Jakarta time) · ${slot.duration_min} min.</p>`);
+      }
+
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
 
@@ -191,7 +257,34 @@ Deno.serve(async (req) => {
             if (error && (error as any).code !== "23505") console.error("convo insert", error);
           });
         }
-        // TODO: welcome email — Resend connector when configured.
+        // Welcome emails (first activation only)
+        const { data: tier } = await admin.from("subscription_tiers").select("name").eq("id", meta.tier_id).maybeSingle();
+        const { data: menteeU } = await admin.auth.admin.getUserById(meta.mentee_id);
+        const { data: coachU } = await admin.auth.admin.getUserById(meta.coach_id);
+        const { data: coachP } = await admin.from("profiles").select("display_name").eq("id", meta.coach_id).maybeSingle();
+        if (menteeU?.user?.email && await prefAllows(admin, meta.mentee_id, "email_new_subscriber")) {
+          await enqueueEmail(admin, menteeU.user.email, `Welcome to ${coachP?.display_name ?? "your coach"}'s ${tier?.name ?? "tier"}`,
+            `<h2>You're in!</h2><p>You've subscribed to ${coachP?.display_name ?? "your coach"} on the <strong>${tier?.name}</strong> tier.</p>`);
+        }
+        if (coachU?.user?.email && await prefAllows(admin, meta.coach_id, "email_new_subscriber")) {
+          await enqueueEmail(admin, coachU.user.email, `🎉 New subscriber on ${tier?.name ?? "your tier"}`,
+            `<p>You have a new subscriber on the <strong>${tier?.name}</strong> tier.</p>`);
+        }
+      }
+
+      // Record revenue on EVERY successful cycle (initial + renewals).
+      // Use the cycle/event id as external_ref so retries dedupe.
+      const cycleRef = plan.cycle_id ?? plan.last_payment_id ?? `${planId}_${event.created ?? Date.now()}`;
+      const cycleAmountIdr = plan.amount ?? plan.last_payment_amount;
+      if (cycleAmountIdr) {
+        await recordRevenue(admin, {
+          coach_id: meta.coach_id,
+          mentee_id: meta.mentee_id,
+          source: "subscription",
+          source_ref_id: existing?.id,
+          gross_idr_rupiah: Number(cycleAmountIdr),
+          external_ref: String(cycleRef),
+        });
       }
 
       return new Response(JSON.stringify({ ok: true, first: isFirstActivation }), { status: 200 });
@@ -203,6 +296,33 @@ Deno.serve(async (req) => {
           .from("subscriptions")
           .update({ status: "canceled", updated_at: new Date().toISOString() })
           .eq("xendit_recurring_plan_id", planId);
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }
+
+    // ─── Branch C: Disbursement (payouts) ──────────────────────────────
+    if (evType === "disbursement.completed" || evType === "disbursement.failed" || event.status === "COMPLETED" || event.status === "FAILED") {
+      const dId = event.id ?? plan.id;
+      const isPaid = (evType.includes("completed") || event.status === "COMPLETED");
+      if (dId) {
+        await admin.from("payouts")
+          .update({
+            status: isPaid ? "paid" : "failed",
+            paid_at: isPaid ? new Date().toISOString() : null,
+            failure_reason: isPaid ? null : (event.failure_code ?? "unknown"),
+          })
+          .eq("xendit_disbursement_id", dId);
+        const { data: p } = await admin.from("payouts").select("coach_id, amount_cents").eq("xendit_disbursement_id", dId).maybeSingle();
+        if (p) {
+          const { data: cu } = await admin.auth.admin.getUserById(p.coach_id);
+          if (cu?.user?.email && await prefAllows(admin, p.coach_id, "email_payout")) {
+            await enqueueEmail(admin, cu.user.email,
+              isPaid ? "Payout paid" : "Payout failed",
+              isPaid
+                ? `<p>Your payout of Rp ${Math.round(p.amount_cents/100).toLocaleString("id-ID")} has been paid.</p>`
+                : `<p>Your payout failed. Please review your bank details.</p>`);
+          }
+        }
       }
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }

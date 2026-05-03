@@ -25,15 +25,9 @@ const assertOnlineForCheckout = () => {
   if (!isOnline()) throw new OfflineError();
 };
 
-/** Detect if user should be routed to Xendit (SEA locales). */
-export const shouldUseXendit = (): boolean => {
-  if (typeof navigator === "undefined") return false;
-  const langs = [navigator.language, ...(navigator.languages ?? [])].map((l) => l.toLowerCase());
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
-  const seaTz = ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura", "Asia/Manila", "Asia/Kuala_Lumpur", "Asia/Singapore", "Asia/Bangkok", "Asia/Ho_Chi_Minh"];
-  const seaLocaleMatch = langs.some((l) => /-(id|ph|my|sg|th|vn)\b/.test(l) || l.startsWith("id") || l.startsWith("tl"));
-  return seaLocaleMatch || seaTz.includes(tz);
-};
+/** Force Xendit for all checkouts during the Indonesia-first launch.
+ *  Stripe edge functions remain in repo but are unreachable from the UI. */
+export const shouldUseXendit = (): boolean => true;
 
 /**
  * App Store compliance: on native iOS we cannot initiate external payment

@@ -89,6 +89,11 @@ async function resolveTierId(admin: any, obj: any): Promise<string | null> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // 🔒 LAUNCH GATE: Stripe webhook disabled until proper HMAC verification.
+  return new Response(JSON.stringify({ disabled: true }),
+    { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  // @ts-ignore unreachable — original handler retained for future re-enable
   const url = new URL(req.url);
   const env = url.searchParams.get("env") ?? "sandbox";
   const expectedSecret =

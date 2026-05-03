@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     if (!slot) return json({ error: "Slot not found" }, 404);
     if (slot.is_booked) return json({ error: "Slot already booked" }, 409);
 
-    const idrAmount = usdCentsToIdr(slot.price_cents);
+    // slot.price_cents is IDR × 100 (UI inputs Rupiah). Xendit wants whole IDR.
+    const idrAmount = Math.round(slot.price_cents / 100);
     const origin = req.headers.get("origin") ?? "https://example.com";
     const externalId = `booking_${slot.id}_${u.user.id}_${Date.now()}`;
 
