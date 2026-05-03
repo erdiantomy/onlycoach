@@ -4,6 +4,7 @@ import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Clock, Video } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/currency";
 
 type Booking = {
   id: string;
@@ -68,7 +69,7 @@ const Sessions = () => {
     }
   };
 
-  const formatPrice = (cents: number) => `$${(cents / 100).toFixed(0)}`;
+  const formatPrice = (cents: number) => formatCurrency(cents);
 
   const Card = ({ b }: { b: Booking }) => (
     <article className="brutal-card-sm flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
