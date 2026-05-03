@@ -74,11 +74,24 @@ const NewPost = () => {
       if (file && media !== "text") {
         const ext = file.name.split(".").pop();
         const path = `${user.id}/${post.id}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
+        const { data: signed, error: signErr } = await supabase.storage
           .from("post-media")
-          .upload(path, file, { upsert: true });
+          .createSignedUploadUrl(path, { upsert: true });
+        if (signErr || !signed) throw signErr ?? new Error("Failed to prepare upload");
 
-        if (uploadErr) throw uploadErr;
+        setUploadPct(0);
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", signed.signedUrl);
+          xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
+          };
+          xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
+          xhr.onerror = () => reject(new Error("Network error during upload"));
+          xhr.send(file);
+        });
+        setUploadPct(100);
 
         await supabase.from("post_media").insert({
           post_id: post.id,
@@ -95,6 +108,7 @@ const NewPost = () => {
       toast.error(msg);
     } finally {
       setSubmitting(false);
+      setUploadPct(null);
     }
   };
 
