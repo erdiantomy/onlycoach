@@ -1,0 +1,1 @@
+CREATE POLICY "mentee reads own revenue" ON public.revenue_events FOR SELECT USING (auth.uid() = mentee_id);

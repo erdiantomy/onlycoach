@@ -18,6 +18,7 @@ import ResetPassword from "./pages/ResetPassword.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Settings from "./pages/Settings.tsx";
 import Billing from "./pages/Billing.tsx";
+import Transactions from "./pages/Transactions.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import Legal from "./pages/Legal.tsx";
 import Challenges from "./pages/Challenges.tsx";
@@ -95,6 +96,7 @@ const App = () => (
           <Route path="/studio/referrals" element={<RequireAuth><Referrals /></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
           <Route path="/settings/billing" element={<RequireAuth><Billing /></RequireAuth>} />
+          <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
           <Route path="/settings/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
           <Route path="/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
           <Route path="/subscribe/:tier_id" element={<SubscribeRedirect />} />
