@@ -27,6 +27,8 @@ import Payouts from "./pages/Payouts.tsx";
 import Referrals from "./pages/Referrals.tsx";
 import MassMessage from "./pages/MassMessage.tsx";
 import StudioChallenges from "./pages/StudioChallenges.tsx";
+import StudioTiers from "./pages/StudioTiers.tsx";
+import StudioAvailability from "./pages/StudioAvailability.tsx";
 import SavedPosts from "./pages/SavedPosts.tsx";
 import MenteeProfile from "./pages/MenteeProfile.tsx";
 import ProfileRedirect from "./pages/ProfileRedirect.tsx";
@@ -80,6 +82,8 @@ const App = () => (
           <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
           <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
           <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
+          <Route path="/studio/tiers" element={<RequireAuth><StudioTiers /></RequireAuth>} />
+          <Route path="/studio/availability" element={<RequireAuth><StudioAvailability /></RequireAuth>} />
           <Route path="/studio/challenges" element={<RequireAuth><StudioChallenges /></RequireAuth>} />
           <Route path="/studio/broadcast" element={<RequireAuth><MassMessage /></RequireAuth>} />
           <Route path="/studio/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
