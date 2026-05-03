@@ -96,6 +96,9 @@ const App = () => (
           <Route path="/settings/billing" element={<RequireAuth><Billing /></RequireAuth>} />
           <Route path="/settings/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
           <Route path="/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
+          <Route path="/subscribe/:tier_id" element={<SubscribeRedirect />} />
+          <Route path="/book/:slot_id" element={<BookRedirect />} />
+          <Route path="/account/billing" element={<AccountBillingRedirect />} />
 
           <Route path="/admin" element={<RequireAdmin><AdminOverview /></RequireAdmin>} />
           <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
