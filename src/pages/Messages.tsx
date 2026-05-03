@@ -7,8 +7,10 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { conversations, messagesByConv, findCoach } from "@/lib/mock";
 import { AlertCircle, Clock, RefreshCw, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Messages = () => {
+  usePageTitle("Messages");
   // Optional URL param — deep links from push notifications navigate to
   // /messages/:conversationId so the right thread opens automatically.
   const { conversationId } = useParams<{ conversationId?: string }>();

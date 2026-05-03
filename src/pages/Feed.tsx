@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { posts, findCoach } from "@/lib/mock";
 import { Heart, Lock, MessageSquare, Image as ImageIcon, FileText, PlayCircle } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const mediaIcon = {
   text: null,
@@ -10,7 +11,9 @@ const mediaIcon = {
   pdf: <FileText className="h-4 w-4" />,
 } as const;
 
-const Feed = () => (
+const Feed = () => {
+  usePageTitle("Your feed");
+  return (
   <AppShell>
     <div className="mx-auto w-full max-w-2xl px-4 py-6 md:px-8 md:py-12">
       <header className="mb-6">
@@ -62,6 +65,7 @@ const Feed = () => (
       </div>
     </div>
   </AppShell>
-);
+  );
+};
 
 export default Feed;

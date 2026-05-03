@@ -4,12 +4,14 @@ import { CoachCard } from "@/components/coach/CoachCard";
 import { coaches, type Niche } from "@/lib/mock";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const niches: (Niche | "All")[] = ["All","Strength","Mindset","Endurance","Nutrition","Yoga","Business"];
 
 const Discover = () => {
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState<(typeof niches)[number]>("All");
+  usePageTitle("Discover coaches");
 
   const results = useMemo(() => coaches.filter((c) => {
     const matchNiche = niche === "All" || c.niche === niche;
