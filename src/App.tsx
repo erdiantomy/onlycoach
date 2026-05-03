@@ -96,6 +96,7 @@ const App = () => (
           <Route path="/studio/referrals" element={<RequireAuth><Referrals /></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
           <Route path="/settings/billing" element={<RequireAuth><Billing /></RequireAuth>} />
+          <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
           <Route path="/settings/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
           <Route path="/payouts" element={<RequireAuth><Payouts /></RequireAuth>} />
           <Route path="/subscribe/:tier_id" element={<SubscribeRedirect />} />
