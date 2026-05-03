@@ -170,18 +170,22 @@ const Index = () => {
           </div>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featuredCoaches.map((c) => (
-              <article key={c.name} className="brutal-card-sm overflow-hidden">
+              <article key={c.handle} className="brutal-card-sm overflow-hidden">
                 <div className="aspect-[4/5] border-b-2 border-ink bg-primary/90" />
                 <div className="p-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-base">{c.name}</h3>
-                    <span className="text-xs font-semibold">★ {c.rating}</span>
+                    <h3 className="font-display text-base">{c.display_name}</h3>
+                    <span className="text-xs font-semibold">★ {Number(c.rating).toFixed(1)}</span>
                   </div>
                   <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
                     {c.niche}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="font-display text-sm">{formatIdr(c.price)}<span className="text-xs">/mo</span></span>
+                    <span className="font-display text-sm">
+                      {c.starting_price_cents !== null
+                        ? <>{formatCurrency(c.starting_price_cents)}<span className="text-xs">/mo</span></>
+                        : <span className="text-xs text-muted-foreground">Free</span>}
+                    </span>
                     <Link
                       to={`/coach/${c.handle}`}
                       className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"
