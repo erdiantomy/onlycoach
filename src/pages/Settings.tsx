@@ -285,20 +285,26 @@ const Settings = () => {
         <section className="brutal-card-sm mt-4 p-5">
           <h2 className="font-display text-xl">Billing</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Payment methods, active subscriptions, invoices.
+            Active subscriptions and cancellations.
           </p>
-          <button className="mt-3 border-2 border-ink bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-wide opacity-60 cursor-not-allowed">
-            Coming soon
-          </button>
+          <Link
+            to="/settings/billing"
+            className="mt-3 inline-block border-2 border-ink bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-accent/50"
+          >
+            Manage billing
+          </Link>
         </section>
 
         {/* Payouts */}
         <section className="brutal-card-sm mt-4 p-5">
           <h2 className="font-display text-xl">Payouts</h2>
           <p className="mt-1 text-sm text-muted-foreground">Coach payout settings.</p>
-          <button className="mt-3 border-2 border-ink bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-wide opacity-60 cursor-not-allowed">
-            Coming soon
-          </button>
+          <Link
+            to="/payouts"
+            className="mt-3 inline-block border-2 border-ink bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-accent/50"
+          >
+            Manage payouts
+          </Link>
         </section>
 
         {/* Notifications */}
@@ -307,9 +313,12 @@ const Settings = () => {
           <p className="mt-1 text-sm text-muted-foreground">
             Email + push notification preferences.
           </p>
-          <button className="mt-3 border-2 border-ink bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-wide opacity-60 cursor-not-allowed">
-            Coming soon
-          </button>
+          <Link
+            to="/settings/notifications"
+            className="mt-3 inline-block border-2 border-ink bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-accent/50"
+          >
+            Manage notifications
+          </Link>
         </section>
 
         {/* Sign out */}
