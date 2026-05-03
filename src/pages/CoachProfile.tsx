@@ -12,6 +12,8 @@ import { ManageOnWebNotice } from "@/components/ManageOnWebNotice";
 import { OfflineBoundary } from "@/components/OfflineBoundary";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { formatCurrency } from "@/lib/currency";
 
 interface ActiveSub {
   tier_id: string;
@@ -27,6 +29,7 @@ const CoachProfile = () => {
   const coach = handle ? findCoach(handle) : undefined;
   const [activeSub, setActiveSub] = useState<ActiveSub | null>(null);
   const [busy, setBusy] = useState(false);
+  usePageTitle(coach?.name ?? "Coach");
 
   useEffect(() => {
     if (!user || !coach) return;
@@ -157,7 +160,7 @@ const CoachProfile = () => {
                   <div key={t.id} className={`border-2 border-ink p-4 ${isCurrent ? "bg-primary text-primary-foreground" : i === 1 ? "bg-accent" : "bg-surface"}`}>
                     <div className="flex items-baseline justify-between">
                       <span className="font-display text-lg">{t.name}</span>
-                      <span className="font-display text-xl">${t.price}<span className="text-xs">/mo</span></span>
+                      <span className="font-display text-xl">{formatCurrency(t.price)}<span className="text-xs">/mo</span></span>
                     </div>
                     <ul className="mt-2 space-y-1 text-sm">
                       {t.perks.map((perk) => (

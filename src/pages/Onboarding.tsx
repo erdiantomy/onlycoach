@@ -1,25 +1,30 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Role = "mentee" | "coach";
 const niches = ["Strength","Mindset","Endurance","Nutrition","Yoga","Business","Other"] as const;
+type Niche = typeof niches[number];
 
 const Onboarding = () => {
   const { user, loading } = useSession();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const initialRole: Role = params.get("role") === "coach" ? "coach" : "mentee";
   const [step, setStep] = useState(1);
-  const [role, setRole] = useState<Role>("mentee");
+  const [role, setRole] = useState<Role>(initialRole);
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [headline, setHeadline] = useState("");
-  const [niche, setNiche] = useState<typeof niches[number]>("Other");
+  const [niche, setNiche] = useState<Niche | "">("");
   const [busy, setBusy] = useState(false);
+  usePageTitle("Welcome");
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -36,6 +41,14 @@ const Onboarding = () => {
 
   const finish = async () => {
     if (!user) return;
+    if (!handle.trim()) {
+      toast.error("Pick a handle so others can find you");
+      return;
+    }
+    if (role === "coach" && !niche) {
+      toast.error("Pick a niche so mentees can discover you");
+      return;
+    }
     setBusy(true);
     try {
       const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, "");
@@ -46,17 +59,23 @@ const Onboarding = () => {
       if (pErr) throw pErr;
 
       if (role === "coach") {
-        const { error: rErr } = await supabase.from("user_roles").insert({ user_id: user.id, role: "coach" });
-        if (rErr && !rErr.message.includes("duplicate")) throw rErr;
-        const { error: cErr } = await supabase.from("coach_profiles").upsert({
-          user_id: user.id, niche, is_published: true,
-        });
+        // Idempotent: 23505 = unique_violation. The handle_new_user trigger
+        // already inserted a 'mentee' row; this insert adds a 'coach' row
+        // alongside it. Users can hold both roles simultaneously.
+        const { error: rErr } = await supabase
+          .from("user_roles")
+          .insert({ user_id: user.id, role: "coach" });
+        if (rErr && rErr.code !== "23505") throw rErr;
+
+        const { error: cErr } = await supabase
+          .from("coach_profiles")
+          .upsert({ user_id: user.id, niche: niche as Niche, is_published: true });
         if (cErr) throw cErr;
       }
       toast.success("Profile saved");
       navigate(role === "coach" ? "/studio" : "/discover");
     } catch (err: any) {
-      toast.error(err.message ?? "Could not save profile");
+      toast.error(err?.message ?? "Could not save profile");
     } finally {
       setBusy(false);
     }
@@ -105,9 +124,11 @@ const Onboarding = () => {
                 <input value={headline} onChange={(e) => setHeadline(e.target.value)}
                   placeholder="One-line headline (e.g. Powerlifting coach)"
                   className="w-full border-2 border-ink bg-surface px-3 py-2.5 text-sm focus:outline-none" />
-                <select value={niche} onChange={(e) => setNiche(e.target.value as typeof niche)}
+                <select value={niche} onChange={(e) => setNiche(e.target.value as Niche | "")}
                   className="w-full border-2 border-ink bg-surface px-3 py-2.5 text-sm focus:outline-none">
-                  {niches.map((n) => <option key={n}>{n}</option>)}
+                  <option value="">Pick your niche…</option>
+                  {niches.filter((n) => n !== "Other").map((n) => <option key={n}>{n}</option>)}
+                  <option value="Other">Other</option>
                 </select>
               </>
             )}

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Logo } from "@/components/brand/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -12,15 +13,26 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user } = useSession();
   const initialMode = params.get("mode") === "signup" ? "signup" : "signin";
+  const role = params.get("role") === "coach" ? "coach" : null;
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  usePageTitle(mode === "signup" ? "Create account" : "Sign in");
 
+  // After auth lands the user, route them somewhere sensible. New
+  // signups (and "I'm a coach" deep links) go to /onboarding so they
+  // can pick role/handle. Returning users go to /feed.
   useEffect(() => {
-    if (user) navigate("/feed", { replace: true });
-  }, [user, navigate]);
+    if (!user) return;
+    const dest = role === "coach"
+      ? `/onboarding?role=coach`
+      : mode === "signup"
+        ? "/onboarding"
+        : "/feed";
+    navigate(dest, { replace: true });
+  }, [user, navigate, mode, role]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,12 +43,12 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/feed`,
+            emailRedirectTo: `${window.location.origin}/onboarding${role === "coach" ? "?role=coach" : ""}`,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
         if (error) throw error;
-        toast.success("Account created. Welcome!");
+        toast.success("Check your inbox to confirm your email.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -82,23 +94,32 @@ const Auth = () => {
             ))}
           </div>
 
+          {role === "coach" && mode === "signup" && (
+            <p className="mb-3 border-2 border-ink bg-accent/40 p-2 text-xs uppercase tracking-wide">
+              You're signing up as a coach.
+            </p>
+          )}
+
           <form onSubmit={submit} className="space-y-3">
             {mode === "signup" && (
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Display name"
+                autoComplete="name"
                 className="w-full border-2 border-ink bg-surface px-3 py-2.5 text-sm focus:outline-none"
               />
             )}
             <input
               type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               placeholder="Email"
+              autoComplete="email"
               className="w-full border-2 border-ink bg-surface px-3 py-2.5 text-sm focus:outline-none"
             />
             <input
               type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
               placeholder="Password"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
               className="w-full border-2 border-ink bg-surface px-3 py-2.5 text-sm focus:outline-none"
             />
             <button type="submit" disabled={busy}

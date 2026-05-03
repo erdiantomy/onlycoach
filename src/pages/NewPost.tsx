@@ -4,12 +4,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { coaches } from "@/lib/mock";
 import { Image as ImageIcon, FileText, PlayCircle, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const mediaOptions = [
-  { id: "text", label: "Text", icon: Type },
-  { id: "image", label: "Image", icon: ImageIcon },
-  { id: "video", label: "Video", icon: PlayCircle },
-  { id: "pdf", label: "PDF", icon: FileText },
+  { id: "text", label: "Text", icon: Type, dropArticle: "a" },
+  { id: "image", label: "Image", icon: ImageIcon, dropArticle: "an" },
+  { id: "video", label: "Video", icon: PlayCircle, dropArticle: "a" },
+  { id: "pdf", label: "PDF", icon: FileText, dropArticle: "a" },
 ] as const;
 
 const NewPost = () => {
@@ -17,6 +19,8 @@ const NewPost = () => {
   const [media, setMedia] = useState<(typeof mediaOptions)[number]["id"]>("text");
   const [tier, setTier] = useState<string | null>(me.tiers[1]?.id ?? null);
   const [body, setBody] = useState("");
+  const dropArticle = mediaOptions.find((m) => m.id === media)?.dropArticle ?? "a";
+  usePageTitle("New post");
 
   return (
     <AppShell>
@@ -41,7 +45,7 @@ const NewPost = () => {
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide">Upload</label>
               <div className="flex aspect-video items-center justify-center border-2 border-dashed border-ink bg-surface text-sm text-muted-foreground">
-                Drop a {media} here, or tap to browse
+                Drop {dropArticle} {media} here, or tap to browse
               </div>
             </div>
           )}
@@ -64,7 +68,7 @@ const NewPost = () => {
                 <button type="button" key={t.id} onClick={() => setTier(t.id)} className={cn(
                   "border-2 border-ink px-3 py-1.5 text-xs font-semibold uppercase",
                   tier === t.id ? "bg-ink text-ink-foreground" : "bg-surface",
-                )}>{t.name} · ${t.price}</button>
+                )}>{t.name} · {formatCurrency(t.price)}</button>
               ))}
             </div>
           </div>

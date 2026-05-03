@@ -1,16 +1,33 @@
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { posts, coaches } from "@/lib/mock";
-import { DollarSign, Plus, Users, FileText, MessageCircle } from "lucide-react";
+import { Plus, Users, FileText, MessageCircle, Wallet } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+// Best-effort first name for greeting — strip honorifics and trailing
+// punctuation so a name like "Dr. Maya Okafor" greets as "Maya" rather
+// than "Dr." (the original split(' ')[0] behaviour).
+const firstName = (full: string | undefined | null, fallback = "coach") => {
+  if (!full) return fallback;
+  const tokens = full
+    .split(/\s+/)
+    .map((t) => t.replace(/[.,]/g, ""))
+    .filter((t) => t && !/^(mr|ms|mrs|dr|prof|coach)$/i.test(t));
+  return tokens[0] ?? fallback;
+};
 
 const Studio = () => {
   const me = coaches[0];
   const myPosts = posts.filter((p) => p.coachId === me.id);
-  const mrr = me.subscribers * 0.4 * 25;
+  // Crude preview MRR estimate; in production this comes from the
+  // subscriptions table aggregated server-side.
+  const mrr = me.subscribers * 0.4 * 25_000;
+  usePageTitle("Studio");
 
   const stats = [
     { label: "Subscribers", value: me.subscribers.toLocaleString(), icon: Users },
-    { label: "Monthly revenue", value: `$${Math.round(mrr).toLocaleString()}`, icon: DollarSign },
+    { label: "Monthly revenue", value: formatCurrency(Math.round(mrr)), icon: Wallet },
     { label: "Posts", value: myPosts.length, icon: FileText },
     { label: "Unread DMs", value: 7, icon: MessageCircle },
   ];
@@ -21,7 +38,7 @@ const Studio = () => {
         <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <span className="brutal-tag mb-3">Coach studio</span>
-            <h1 className="font-display text-3xl md:text-5xl">Welcome back, {me.name.split(" ")[0]}.</h1>
+            <h1 className="font-display text-3xl md:text-5xl">Welcome back, {firstName(me.name)}.</h1>
           </div>
           <Link to="/studio/post/new"
             className="inline-flex items-center gap-2 border-2 border-ink bg-accent px-4 py-2.5 text-sm font-semibold uppercase tracking-wide shadow-brutal-sm">

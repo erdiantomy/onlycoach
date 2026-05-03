@@ -1,17 +1,34 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ArrowRight, Check, MessageCircle, PlayCircle, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
+import { useSession } from "@/hooks/useSession";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { coaches } from "@/lib/mock";
+import { formatPerMonth } from "@/lib/currency";
 
-const featuredCoaches = [
-  { name: "Maya Okafor", niche: "Strength · Hypertrophy", price: 19, rating: 4.9 },
-  { name: "Theo Lindberg", niche: "Mindset · Habits", price: 24, rating: 4.8 },
-  { name: "Ines Kovač", niche: "Run · Endurance", price: 15, rating: 4.9 },
-  { name: "Diego Ramos", niche: "Nutrition · Cut", price: 22, rating: 4.7 },
-];
+const featuredCoaches = coaches.slice(0, 4).map((c) => ({
+  handle: c.handle,
+  name: c.name,
+  niche: c.headline,
+  price: c.tiers[0].price,
+  rating: c.rating,
+}));
+
+// The hero card mirrors the first featured coach so the "Subscribe"
+// and "Message coach" buttons can deep-link straight to a real profile
+// instead of dangling as no-ops.
+const heroCoach = featuredCoaches[0];
 
 const Index = () => {
+  const { user, loading } = useSession();
+  usePageTitle(null);
+
+  // Logged-in users land on their feed instead of seeing marketing
+  // copy and "Create your account" CTAs that no longer apply.
+  if (!loading && user) return <Navigate to="/feed" replace />;
+
   return (
     <AppShell hideTabBar>
       {/* HERO */}
@@ -70,20 +87,22 @@ const Index = () => {
               <div className="mt-5 aspect-[4/5] border-2 border-ink bg-primary/90">
                 <div className="flex h-full items-end justify-between p-4 text-primary-foreground">
                   <div>
-                    <div className="font-display text-2xl leading-none">MAYA O.</div>
+                    <div className="font-display text-2xl leading-none">{heroCoach.name.toUpperCase()}</div>
                     <div className="mt-1 text-xs uppercase tracking-wide opacity-80">
-                      Strength · Hypertrophy
+                      {heroCoach.niche}
                     </div>
                   </div>
                   <PlayCircle className="h-10 w-10" strokeWidth={1.5} />
                 </div>
               </div>
-              <button className="mt-4 w-full border-2 border-ink bg-accent py-3 font-display text-sm uppercase tracking-wide text-ink shadow-brutal-sm">
-                Subscribe — $19/mo
-              </button>
-              <button className="mt-2 flex w-full items-center justify-center gap-2 border-2 border-ink bg-surface py-3 font-display text-sm uppercase tracking-wide text-ink">
+              <Link to={`/coach/${heroCoach.handle}`}
+                className="mt-4 block w-full border-2 border-ink bg-accent py-3 text-center font-display text-sm uppercase tracking-wide text-ink shadow-brutal-sm">
+                Subscribe — {formatPerMonth(heroCoach.price)}
+              </Link>
+              <Link to={`/auth?mode=signup&from=/coach/${heroCoach.handle}`}
+                className="mt-2 flex w-full items-center justify-center gap-2 border-2 border-ink bg-surface py-3 font-display text-sm uppercase tracking-wide text-ink">
                 <MessageCircle className="h-4 w-4" /> Message coach
-              </button>
+              </Link>
             </div>
             <div
               aria-hidden
@@ -139,7 +158,7 @@ const Index = () => {
           </div>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featuredCoaches.map((c) => (
-              <article key={c.name} className="brutal-card-sm overflow-hidden">
+              <article key={c.handle} className="brutal-card-sm overflow-hidden">
                 <div className="aspect-[4/5] border-b-2 border-ink bg-primary/90" />
                 <div className="p-4">
                   <div className="flex items-center justify-between">
@@ -150,9 +169,9 @@ const Index = () => {
                     {c.niche}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="font-display text-lg">${c.price}<span className="text-xs">/mo</span></span>
+                    <span className="font-display text-lg">{formatPerMonth(c.price)}</span>
                     <Link
-                      to="/discover"
+                      to={`/coach/${c.handle}`}
                       className="border-2 border-ink bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-brutal-sm"
                     >
                       View

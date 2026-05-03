@@ -19,6 +19,7 @@ import Onboarding from "./pages/Onboarding.tsx";
 import Settings from "./pages/Settings.tsx";
 import Legal from "./pages/Legal.tsx";
 import RequireAuth from "./components/auth/RequireAuth.tsx";
+import RequireRole from "./components/auth/RequireRole.tsx";
 import { DeepLinkHandler } from "./components/DeepLinkHandler.tsx";
 
 const queryClient = new QueryClient();
@@ -46,8 +47,8 @@ const App = () => (
           <Route path="/messages/:conversationId" element={<RequireAuth><Messages /></RequireAuth>} />
           <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
           <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
-          <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
-          <Route path="/studio/post/new" element={<RequireAuth><NewPost /></RequireAuth>} />
+          <Route path="/studio" element={<RequireAuth><RequireRole role="coach"><Studio /></RequireRole></RequireAuth>} />
+          <Route path="/studio/post/new" element={<RequireAuth><RequireRole role="coach"><NewPost /></RequireRole></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
