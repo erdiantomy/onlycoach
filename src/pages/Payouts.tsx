@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Banknote, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Banknote, CheckCircle2, Clock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Database } from "@/integrations/supabase/types";
+
+const MIN_PAYOUT_IDR_CENTS = 25_000_000; // Rp 250.000
 
 type PayoutAccount = Database["public"]["Tables"]["coach_payout_accounts"]["Row"];
 type Payout = Database["public"]["Tables"]["payouts"]["Row"];
