@@ -26,6 +26,7 @@ const NewPost = () => {
   const [body, setBody] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
 
   const { data: tiers = [] } = useQuery({
     queryKey: ["my-tiers", user?.id],
