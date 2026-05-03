@@ -232,12 +232,19 @@ const NewPost = () => {
             </div>
           </div>
 
+          {uploadPct !== null && (
+            <div className="border-2 border-ink bg-surface">
+              <div className="h-2 bg-primary transition-all" style={{ width: `${uploadPct}%` }} />
+              <div className="px-2 py-1 text-xs uppercase tracking-wide">Uploading… {uploadPct}%</div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={submitting || !body.trim()}
             className="w-full border-2 border-ink bg-accent py-3 font-display text-sm uppercase tracking-wide shadow-brutal-sm disabled:opacity-60"
           >
-            {submitting ? "Publishing…" : "Publish"}
+            {submitting ? (uploadPct !== null ? `Uploading ${uploadPct}%` : "Publishing…") : "Publish"}
           </button>
         </form>
       </div>
