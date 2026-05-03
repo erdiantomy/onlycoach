@@ -130,6 +130,32 @@ Deno.serve(async (req) => {
       if (!slot.is_booked) {
         await admin.from("availability_slots").update({ is_booked: true }).eq("id", m.slot_id);
       }
+
+      // Revenue ledger (slot.price_cents is IDR×100 → divide by 100 for Rupiah)
+      await recordRevenue(admin, {
+        coach_id: m.coach_id,
+        mentee_id: m.mentee_id,
+        source: "booking",
+        source_ref_id: m.slot_id,
+        gross_idr_rupiah: Math.round(slot.price_cents / 100),
+        external_ref: invoiceId,
+      });
+
+      // Emails
+      const { data: menteeUser } = await admin.auth.admin.getUserById(m.mentee_id);
+      const { data: coachUser } = await admin.auth.admin.getUserById(m.coach_id);
+      const when = new Date(slot.starts_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      if (menteeUser?.user?.email && await prefAllows(admin, m.mentee_id, "email_booking_reminder")) {
+        await enqueueEmail(admin, menteeUser.user.email,
+          `Booking confirmed — ${when}`,
+          `<h2>Your session is booked</h2><p>${when} (Jakarta time) · ${slot.duration_min} min.</p><p><a href="https://onlycoach.co/sessions">View in OnlyCoach</a></p>`);
+      }
+      if (coachUser?.user?.email && await prefAllows(admin, m.coach_id, "email_booking_reminder")) {
+        await enqueueEmail(admin, coachUser.user.email,
+          `New booking — ${when}`,
+          `<h2>You have a new session</h2><p>${when} (Jakarta time) · ${slot.duration_min} min.</p>`);
+      }
+
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
 
