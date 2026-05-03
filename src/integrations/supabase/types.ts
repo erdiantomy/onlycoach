@@ -461,24 +461,30 @@ export type Database = {
       conversations: {
         Row: {
           coach_id: string
+          coach_last_read_at: string
           created_at: string
           id: string
           last_message_at: string
           mentee_id: string
+          mentee_last_read_at: string
         }
         Insert: {
           coach_id: string
+          coach_last_read_at?: string
           created_at?: string
           id?: string
           last_message_at?: string
           mentee_id: string
+          mentee_last_read_at?: string
         }
         Update: {
           coach_id?: string
+          coach_last_read_at?: string
           created_at?: string
           id?: string
           last_message_at?: string
           mentee_id?: string
+          mentee_last_read_at?: string
         }
         Relationships: []
       }
