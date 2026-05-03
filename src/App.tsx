@@ -17,6 +17,8 @@ import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Settings from "./pages/Settings.tsx";
+import Billing from "./pages/Billing.tsx";
+import Notifications from "./pages/Notifications.tsx";
 import Legal from "./pages/Legal.tsx";
 import Challenges from "./pages/Challenges.tsx";
 import ChallengeDetail from "./pages/ChallengeDetail.tsx";
