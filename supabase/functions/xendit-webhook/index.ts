@@ -1,9 +1,49 @@
-// Xendit webhook handler — invoice.paid, recurring.* events.
-// HARDENED: idempotent at three layers
-//   1. Event-level dedup via processed_webhook_events table (atomic insert)
-//   2. Booking unique index on xendit_invoice_id (DB rejects duplicates)
-//   3. Subscription unique index on xendit_recurring_plan_id (lookup-then-update)
+// Xendit webhook handler — invoice.paid, recurring.*, disbursement.* events.
+// HARDENED: idempotent at three layers + revenue ledger + email notifications.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+
+const PLATFORM_FEE_BPS = 1000; // 10%
+
+async function recordRevenue(admin: any, args: {
+  coach_id: string; mentee_id?: string;
+  source: "subscription" | "booking";
+  source_ref_id?: string;
+  gross_idr_rupiah: number;
+  external_ref: string;
+}) {
+  const gross = Math.round(args.gross_idr_rupiah * 100); // store as IDR×100
+  const fee = Math.round((gross * PLATFORM_FEE_BPS) / 10000);
+  const net = gross - fee;
+  const { error } = await admin.from("revenue_events").insert({
+    coach_id: args.coach_id,
+    mentee_id: args.mentee_id,
+    source: args.source,
+    source_ref_id: args.source_ref_id,
+    gross_idr_cents: gross,
+    platform_fee_idr_cents: fee,
+    coach_net_idr_cents: net,
+    payment_provider: "xendit",
+    external_ref: args.external_ref,
+  });
+  if (error && (error as any).code !== "23505") console.error("revenue insert", error);
+}
+
+async function prefAllows(admin: any, user_id: string, key: string): Promise<boolean> {
+  const { data } = await admin.from("notification_preferences").select(key).eq("user_id", user_id).maybeSingle();
+  if (!data) return true; // default-on if no row
+  return (data as any)[key] !== false;
+}
+
+async function enqueueEmail(admin: any, to: string, subject: string, html: string) {
+  try {
+    await admin.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: { to, subject, html, purpose: "transactional" },
+    });
+  } catch (e) {
+    console.warn("enqueue_email failed:", (e as Error).message);
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
